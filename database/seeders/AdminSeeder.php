@@ -10,28 +10,28 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminRole = DB::table('Role')->where('name', 'admin')->first();
+        $adminRole = DB::table('Roles')->where('name', 'admin')->first();
 
         if (!$adminRole) {
-            $adminRoleId = DB::table('Role')->insertGetId([
+            $adminRoleId = DB::table('Roles')->insertGetId([
                 'name' => 'admin',
-                'createdAt' => now(),
-                'updatedAt' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         } else {
             $adminRoleId = $adminRole->id;
         }
 
-        $existingAdmin = DB::table('User')->where('email', 'admin@financeflow.com')->first();
+        $existingAdmin = DB::table('Users')->where('email', 'admin@financeflow.com')->first();
 
         if (!$existingAdmin) {
-            DB::table('User')->insert([
+            DB::table('Users')->insert([
                 'name' => 'Admin User',
                 'email' => 'admin@financeflow.com',
                 'password' => Hash::make('password123'),
-                'roleId' => $adminRoleId,
-                'createdAt' => now(),
-                'updatedAt' => now(),
+                'role_id' => $adminRoleId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

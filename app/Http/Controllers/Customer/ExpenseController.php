@@ -52,7 +52,7 @@ class ExpenseController extends Controller
 
         if (!empty($validated['customerId'])) {
             $customer = PrismaService::getCustomer($validated['customerId']);
-            if (!$customer || $customer->userId != auth()->id()) {
+            if (!$customer || $customer->user_id != auth()->id()) {
                 return redirect()->back()->with('error', 'Invalid customer.');
             }
         }
@@ -69,7 +69,7 @@ class ExpenseController extends Controller
     {
         $expense = PrismaService::getExpense($id);
 
-        if (!$expense || $expense->userId != auth()->id()) {
+        if (!$expense || $expense->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Expense not found.');
         }
 
@@ -79,7 +79,7 @@ class ExpenseController extends Controller
     public function update(Request $request, $id)
     {
         $expense = PrismaService::getExpense($id);
-        if (!$expense || $expense->userId != auth()->id()) {
+        if (!$expense || $expense->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Expense not found.');
         }
 
@@ -103,7 +103,7 @@ class ExpenseController extends Controller
     public function destroy($id)
     {
         $expense = PrismaService::getExpense($id);
-        if (!$expense || $expense->userId != auth()->id()) {
+        if (!$expense || $expense->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Expense not found.');
         }
 

@@ -17,10 +17,10 @@ class CheckRole
             return redirect()->route('login');
         }
 
-        $userWithRole = DB::table('User')
-            ->join('Role', 'User.roleId', '=', 'Role.id')
-            ->select('User.*', 'Role.name as role_name')
-            ->where('User.id', $user->id)
+        $userWithRole = DB::table('Users')
+            ->join('Roles', 'Users.role_id', '=', 'Roles.id')
+            ->select('Users.*', 'Roles.name as role_name')
+            ->where('Users.id', $user->id)
             ->first();
 
         if (!$userWithRole || strtolower($userWithRole->role_name) !== strtolower($role)) {

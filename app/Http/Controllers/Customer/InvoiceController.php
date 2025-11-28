@@ -39,7 +39,7 @@ class InvoiceController extends Controller
         ]);
 
         $customer = PrismaService::getCustomer($validated['customerId']);
-        if (!$customer || $customer->userId != auth()->id()) {
+        if (!$customer || $customer->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Invalid customer.');
         }
 
@@ -88,7 +88,7 @@ class InvoiceController extends Controller
     {
         $invoice = PrismaService::getInvoiceWithItems($id);
 
-        if (!$invoice || $invoice->userId != auth()->id()) {
+        if (!$invoice || $invoice->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Invoice not found.');
         }
 
@@ -98,7 +98,7 @@ class InvoiceController extends Controller
     public function update(Request $request, $id)
     {
         $invoice = PrismaService::getInvoice($id);
-        if (!$invoice || $invoice->userId != auth()->id()) {
+        if (!$invoice || $invoice->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Invoice not found.');
         }
 
@@ -158,7 +158,7 @@ class InvoiceController extends Controller
     public function destroy($id)
     {
         $invoice = PrismaService::getInvoice($id);
-        if (!$invoice || $invoice->userId != auth()->id()) {
+        if (!$invoice || $invoice->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Invoice not found.');
         }
 

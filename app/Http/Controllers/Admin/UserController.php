@@ -26,18 +26,18 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:User,email',
+            'email' => 'required|email|max:255|unique:Users,email',
             'password' => 'required|string|min:8',
             'roleId' => 'required|integer',
         ]);
 
-        DB::table('User')->insert([
+        DB::table('Users')->insert([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'roleId' => $validated['roleId'],
-            'createdAt' => now(),
-            'updatedAt' => now(),
+            'role_id' => $validated['roleId'],
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('success', 'User created successfully.');
@@ -58,7 +58,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:User,email,' . $id,
+            'email' => 'required|email|max:255|unique:Users,email,' . $id,
             'password' => 'nullable|string|min:8',
             'roleId' => 'required|integer',
         ]);
@@ -66,15 +66,15 @@ class UserController extends Controller
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'roleId' => $validated['roleId'],
-            'updatedAt' => now(),
+            'role_id' => $validated['roleId'],
+            'updated_at' => now(),
         ];
 
         if (!empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
         }
 
-        DB::table('User')->where('id', $id)->update($updateData);
+        DB::table('Users')->where('id', $id)->update($updateData);
 
         return redirect()->back()->with('success', 'User updated successfully.');
     }
@@ -85,7 +85,7 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'You cannot delete your own account.');
         }
 
-        DB::table('User')->where('id', $id)->delete();
+        DB::table('Users')->where('id', $id)->delete();
 
         return redirect()->back()->with('success', 'User deleted successfully.');
     }

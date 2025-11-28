@@ -39,7 +39,7 @@ class EstimateController extends Controller
         ]);
 
         $customer = PrismaService::getCustomer($validated['customerId']);
-        if (!$customer || $customer->userId != auth()->id()) {
+        if (!$customer || $customer->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Invalid customer.');
         }
 
@@ -88,7 +88,7 @@ class EstimateController extends Controller
     {
         $estimate = PrismaService::getEstimateWithItems($id);
 
-        if (!$estimate || $estimate->userId != auth()->id()) {
+        if (!$estimate || $estimate->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Estimate not found.');
         }
 
@@ -98,7 +98,7 @@ class EstimateController extends Controller
     public function update(Request $request, $id)
     {
         $estimate = PrismaService::getEstimate($id);
-        if (!$estimate || $estimate->userId != auth()->id()) {
+        if (!$estimate || $estimate->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Estimate not found.');
         }
 
@@ -158,7 +158,7 @@ class EstimateController extends Controller
     public function destroy($id)
     {
         $estimate = PrismaService::getEstimate($id);
-        if (!$estimate || $estimate->userId != auth()->id()) {
+        if (!$estimate || $estimate->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Estimate not found.');
         }
 

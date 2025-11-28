@@ -43,7 +43,7 @@ class CustomerController extends Controller
     {
         $customer = PrismaService::getCustomer($id);
 
-        if (!$customer || $customer->userId != auth()->id()) {
+        if (!$customer || $customer->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Customer not found.');
         }
 
@@ -53,7 +53,7 @@ class CustomerController extends Controller
     public function update(Request $request, $id)
     {
         $customer = PrismaService::getCustomer($id);
-        if (!$customer || $customer->userId != auth()->id()) {
+        if (!$customer || $customer->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Customer not found.');
         }
 
@@ -76,7 +76,7 @@ class CustomerController extends Controller
     public function destroy($id)
     {
         $customer = PrismaService::getCustomer($id);
-        if (!$customer || $customer->userId != auth()->id()) {
+        if (!$customer || $customer->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Customer not found.');
         }
 

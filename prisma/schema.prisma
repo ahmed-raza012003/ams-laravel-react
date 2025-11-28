@@ -6,83 +6,83 @@ datasource db {
   provider = "mysql"
 }
 
-model Role {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  users     User[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Roles {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  users      Users[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
-model User {
-  id            Int        @id @default(autoincrement())
-  name          String
-  email         String     @unique
-  password      String
-  roleId        Int
-  role          Role       @relation(fields: [roleId], references: [id])
-  customers     Customer[]
-  items         Item[]
-  invoices      Invoice[]
-  estimates     Estimate[]
-  expenses      Expense[]
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  emailVerifiedAt DateTime?
-  rememberToken String?
+model Users {
+  id               Int        @id @default(autoincrement())
+  name             String
+  email            String     @unique
+  password         String
+  role_id          Int
+  role             Roles      @relation(fields: [role_id], references: [id])
+  customers        Customers[]
+  items            Items[]
+  invoices         Invoices[]
+  estimates        Estimates[]
+  expenses         Expenses[]
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+  email_verified_at DateTime?
+  remember_token   String?
 }
 
-model Customer {
-  id          Int        @id @default(autoincrement())
-  userId      Int
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  postcode    String?
-  country     String?    @default("United Kingdom")
-  notes       String?
-  invoices    Invoice[]
-  estimates   Estimate[]
-  expenses    Expense[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+model Customers {
+  id         Int        @id @default(autoincrement())
+  user_id    Int
+  user       Users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  city       String?
+  postcode   String?
+  country    String?    @default("United Kingdom")
+  notes      String?
+  invoices   Invoices[]
+  estimates  Estimates[]
+  expenses   Expenses[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
 }
 
-model Item {
-  id            Int           @id @default(autoincrement())
-  userId        Int
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String
-  description   String?
-  unitPrice     Decimal       @db.Decimal(10, 2)
-  unit          String?       @default("unit")
-  taxRate       Decimal?      @db.Decimal(5, 2) @default(0)
-  invoiceItems  InvoiceItem[]
-  estimateItems EstimateItem[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+model Items {
+  id             Int            @id @default(autoincrement())
+  user_id        Int
+  user           Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  unit_price     Decimal        @db.Decimal(10, 2)
+  unit           String?        @default("unit")
+  tax_rate       Decimal?       @db.Decimal(5, 2) @default(0)
+  invoice_items  InvoiceItems[]
+  estimate_items EstimateItems[]
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
 }
 
-model Invoice {
-  id            Int           @id @default(autoincrement())
-  userId        Int
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customerId    Int
-  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  invoiceNumber String        @unique
-  issueDate     DateTime      @default(now())
-  dueDate       DateTime
-  status        InvoiceStatus @default(DRAFT)
-  subtotal      Decimal       @db.Decimal(10, 2) @default(0)
-  taxAmount     Decimal       @db.Decimal(10, 2) @default(0)
-  total         Decimal       @db.Decimal(10, 2) @default(0)
-  notes         String?
-  items         InvoiceItem[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+model Invoices {
+  id             Int            @id @default(autoincrement())
+  user_id        Int
+  user           Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  customer_id    Int
+  customer       Customers      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  invoice_number String         @unique
+  issue_date     DateTime       @default(now())
+  due_date       DateTime
+  status         InvoiceStatus  @default(DRAFT)
+  subtotal       Decimal        @db.Decimal(10, 2) @default(0)
+  tax_amount     Decimal        @db.Decimal(10, 2) @default(0)
+  total          Decimal        @db.Decimal(10, 2) @default(0)
+  notes          String?
+  items          InvoiceItems[]
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
 }
 
 enum InvoiceStatus {
@@ -93,38 +93,38 @@ enum InvoiceStatus {
   CANCELLED
 }
 
-model InvoiceItem {
+model InvoiceItems {
   id          Int      @id @default(autoincrement())
-  invoiceId   Int
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  itemId      Int?
-  item        Item?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  invoice_id  Int
+  invoice     Invoices @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  item_id     Int?
+  item        Items?   @relation(fields: [item_id], references: [id], onDelete: SetNull)
   description String
   quantity    Decimal  @db.Decimal(10, 2)
-  unitPrice   Decimal  @db.Decimal(10, 2)
-  taxRate     Decimal  @db.Decimal(5, 2) @default(0)
+  unit_price  Decimal  @db.Decimal(10, 2)
+  tax_rate    Decimal  @db.Decimal(5, 2) @default(0)
   total       Decimal  @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
-model Estimate {
-  id             Int            @id @default(autoincrement())
-  userId         Int
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customerId     Int
-  customer       Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  estimateNumber String         @unique
-  issueDate      DateTime       @default(now())
-  expiryDate     DateTime
-  status         EstimateStatus @default(DRAFT)
-  subtotal       Decimal        @db.Decimal(10, 2) @default(0)
-  taxAmount      Decimal        @db.Decimal(10, 2) @default(0)
-  total          Decimal        @db.Decimal(10, 2) @default(0)
-  notes          String?
-  items          EstimateItem[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+model Estimates {
+  id              Int            @id @default(autoincrement())
+  user_id         Int
+  user            Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  customer_id     Int
+  customer        Customers      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  estimate_number String         @unique
+  issue_date      DateTime       @default(now())
+  expiry_date     DateTime
+  status          EstimateStatus @default(DRAFT)
+  subtotal        Decimal        @db.Decimal(10, 2) @default(0)
+  tax_amount      Decimal        @db.Decimal(10, 2) @default(0)
+  total           Decimal        @db.Decimal(10, 2) @default(0)
+  notes           String?
+  items           EstimateItems[]
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
 }
 
 enum EstimateStatus {
@@ -135,36 +135,36 @@ enum EstimateStatus {
   EXPIRED
 }
 
-model EstimateItem {
-  id          Int      @id @default(autoincrement())
-  estimateId  Int
-  estimate    Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
-  itemId      Int?
-  item        Item?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+model EstimateItems {
+  id          Int       @id @default(autoincrement())
+  estimate_id Int
+  estimate    Estimates @relation(fields: [estimate_id], references: [id], onDelete: Cascade)
+  item_id     Int?
+  item        Items?    @relation(fields: [item_id], references: [id], onDelete: SetNull)
   description String
-  quantity    Decimal  @db.Decimal(10, 2)
-  unitPrice   Decimal  @db.Decimal(10, 2)
-  taxRate     Decimal  @db.Decimal(5, 2) @default(0)
-  total       Decimal  @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  quantity    Decimal   @db.Decimal(10, 2)
+  unit_price  Decimal   @db.Decimal(10, 2)
+  tax_rate    Decimal   @db.Decimal(5, 2) @default(0)
+  total       Decimal   @db.Decimal(10, 2)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 }
 
-model Expense {
+model Expenses {
   id          Int             @id @default(autoincrement())
-  userId      Int
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customerId  Int?
-  customer    Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  user_id     Int
+  user        Users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  customer_id Int?
+  customer    Customers?      @relation(fields: [customer_id], references: [id], onDelete: SetNull)
   category    ExpenseCategory
   description String
   amount      Decimal         @db.Decimal(10, 2)
-  taxAmount   Decimal         @db.Decimal(10, 2) @default(0)
+  tax_amount  Decimal         @db.Decimal(10, 2) @default(0)
   date        DateTime        @default(now())
   receipt     String?
   notes       String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
 }
 
 enum ExpenseCategory {

@@ -3,131 +3,149 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PrismaService
 {
+    /**
+     * Convert camelCase keys to snake_case
+     */
+    private static function convertKeysToSnakeCase(array $data): array
+    {
+        $converted = [];
+        foreach ($data as $key => $value) {
+            $snakeKey = Str::snake($key);
+            $converted[$snakeKey] = $value;
+        }
+        return $converted;
+    }
+
     public static function getRoles()
     {
-        return DB::table('Role')->get();
+        return DB::table('Roles')->get();
     }
 
     public static function getRole($id)
     {
-        return DB::table('Role')->where('id', $id)->first();
+        return DB::table('Roles')->where('id', $id)->first();
     }
 
     public static function getRoleByName($name)
     {
-        return DB::table('Role')->where('name', $name)->first();
+        return DB::table('Roles')->where('name', $name)->first();
     }
 
     public static function getUsers()
     {
-        return DB::table('User')
-            ->join('Role', 'User.roleId', '=', 'Role.id')
-            ->select('User.*', 'Role.name as role_name')
+        return DB::table('Users')
+            ->join('Roles', 'Users.role_id', '=', 'Roles.id')
+            ->select('Users.*', 'Roles.name as role_name')
             ->get();
     }
 
     public static function getUser($id)
     {
-        return DB::table('User')
-            ->join('Role', 'User.roleId', '=', 'Role.id')
-            ->select('User.*', 'Role.name as role_name')
-            ->where('User.id', $id)
+        return DB::table('Users')
+            ->join('Roles', 'Users.role_id', '=', 'Roles.id')
+            ->select('Users.*', 'Roles.name as role_name')
+            ->where('Users.id', $id)
             ->first();
     }
 
     public static function getUserByEmail($email)
     {
-        return DB::table('User')
-            ->join('Role', 'User.roleId', '=', 'Role.id')
-            ->select('User.*', 'Role.name as role_name')
-            ->where('User.email', $email)
+        return DB::table('Users')
+            ->join('Roles', 'Users.role_id', '=', 'Roles.id')
+            ->select('Users.*', 'Roles.name as role_name')
+            ->where('Users.email', $email)
             ->first();
     }
 
     public static function getCustomers($userId = null)
     {
-        $query = DB::table('Customer');
+        $query = DB::table('Customers');
         if ($userId) {
-            $query->where('userId', $userId);
+            $query->where('user_id', $userId);
         }
-        return $query->orderBy('createdAt', 'desc')->get();
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public static function getCustomer($id)
     {
-        return DB::table('Customer')->where('id', $id)->first();
+        return DB::table('Customers')->where('id', $id)->first();
     }
 
     public static function createCustomer($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('Customer')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('Customers')->insertGetId($data);
     }
 
     public static function updateCustomer($id, $data)
     {
-        $data['updatedAt'] = now();
-        return DB::table('Customer')->where('id', $id)->update($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('Customers')->where('id', $id)->update($data);
     }
 
     public static function deleteCustomer($id)
     {
-        return DB::table('Customer')->where('id', $id)->delete();
+        return DB::table('Customers')->where('id', $id)->delete();
     }
 
     public static function getItems($userId = null)
     {
-        $query = DB::table('Item');
+        $query = DB::table('Items');
         if ($userId) {
-            $query->where('userId', $userId);
+            $query->where('user_id', $userId);
         }
-        return $query->orderBy('createdAt', 'desc')->get();
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public static function getItem($id)
     {
-        return DB::table('Item')->where('id', $id)->first();
+        return DB::table('Items')->where('id', $id)->first();
     }
 
     public static function createItem($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('Item')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('Items')->insertGetId($data);
     }
 
     public static function updateItem($id, $data)
     {
-        $data['updatedAt'] = now();
-        return DB::table('Item')->where('id', $id)->update($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('Items')->where('id', $id)->update($data);
     }
 
     public static function deleteItem($id)
     {
-        return DB::table('Item')->where('id', $id)->delete();
+        return DB::table('Items')->where('id', $id)->delete();
     }
 
     public static function getInvoices($userId = null)
     {
-        $query = DB::table('Invoice')
-            ->join('Customer', 'Invoice.customerId', '=', 'Customer.id')
-            ->select('Invoice.*', 'Customer.name as customer_name', 'Customer.email as customer_email');
+        $query = DB::table('Invoices')
+            ->join('Customers', 'Invoices.customer_id', '=', 'Customers.id')
+            ->select('Invoices.*', 'Customers.name as customer_name', 'Customers.email as customer_email');
         if ($userId) {
-            $query->where('Invoice.userId', $userId);
+            $query->where('Invoices.user_id', $userId);
         }
-        return $query->orderBy('Invoice.createdAt', 'desc')->get();
+        return $query->orderBy('Invoices.created_at', 'desc')->get();
     }
 
     public static function getInvoice($id)
     {
-        return DB::table('Invoice')
-            ->join('Customer', 'Invoice.customerId', '=', 'Customer.id')
-            ->select('Invoice.*', 'Customer.name as customer_name', 'Customer.email as customer_email')
-            ->where('Invoice.id', $id)
+        return DB::table('Invoices')
+            ->join('Customers', 'Invoices.customer_id', '=', 'Customers.id')
+            ->select('Invoices.*', 'Customers.name as customer_name', 'Customers.email as customer_email')
+            ->where('Invoices.id', $id)
             ->first();
     }
 
@@ -135,10 +153,10 @@ class PrismaService
     {
         $invoice = self::getInvoice($id);
         if ($invoice) {
-            $invoice->items = DB::table('InvoiceItem')
-                ->leftJoin('Item', 'InvoiceItem.itemId', '=', 'Item.id')
-                ->select('InvoiceItem.*', 'Item.name as item_name')
-                ->where('InvoiceItem.invoiceId', $id)
+            $invoice->items = DB::table('InvoiceItems')
+                ->leftJoin('Items', 'InvoiceItems.item_id', '=', 'Items.id')
+                ->select('InvoiceItems.*', 'Items.name as item_name')
+                ->where('InvoiceItems.invoice_id', $id)
                 ->get();
         }
         return $invoice;
@@ -146,59 +164,62 @@ class PrismaService
 
     public static function createInvoice($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('Invoice')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('Invoices')->insertGetId($data);
     }
 
     public static function updateInvoice($id, $data)
     {
-        $data['updatedAt'] = now();
-        return DB::table('Invoice')->where('id', $id)->update($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('Invoices')->where('id', $id)->update($data);
     }
 
     public static function deleteInvoice($id)
     {
-        DB::table('InvoiceItem')->where('invoiceId', $id)->delete();
-        return DB::table('Invoice')->where('id', $id)->delete();
+        DB::table('InvoiceItems')->where('invoice_id', $id)->delete();
+        return DB::table('Invoices')->where('id', $id)->delete();
     }
 
     public static function createInvoiceItem($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('InvoiceItem')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('InvoiceItems')->insertGetId($data);
     }
 
     public static function deleteInvoiceItems($invoiceId)
     {
-        return DB::table('InvoiceItem')->where('invoiceId', $invoiceId)->delete();
+        return DB::table('InvoiceItems')->where('invoice_id', $invoiceId)->delete();
     }
 
     public static function generateInvoiceNumber()
     {
-        $lastInvoice = DB::table('Invoice')->orderBy('id', 'desc')->first();
-        $number = $lastInvoice ? intval(substr($lastInvoice->invoiceNumber, 4)) + 1 : 1;
+        $lastInvoice = DB::table('Invoices')->orderBy('id', 'desc')->first();
+        $number = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4)) + 1 : 1;
         return 'INV-' . str_pad($number, 5, '0', STR_PAD_LEFT);
     }
 
     public static function getEstimates($userId = null)
     {
-        $query = DB::table('Estimate')
-            ->join('Customer', 'Estimate.customerId', '=', 'Customer.id')
-            ->select('Estimate.*', 'Customer.name as customer_name', 'Customer.email as customer_email');
+        $query = DB::table('Estimates')
+            ->join('Customers', 'Estimates.customer_id', '=', 'Customers.id')
+            ->select('Estimates.*', 'Customers.name as customer_name', 'Customers.email as customer_email');
         if ($userId) {
-            $query->where('Estimate.userId', $userId);
+            $query->where('Estimates.user_id', $userId);
         }
-        return $query->orderBy('Estimate.createdAt', 'desc')->get();
+        return $query->orderBy('Estimates.created_at', 'desc')->get();
     }
 
     public static function getEstimate($id)
     {
-        return DB::table('Estimate')
-            ->join('Customer', 'Estimate.customerId', '=', 'Customer.id')
-            ->select('Estimate.*', 'Customer.name as customer_name', 'Customer.email as customer_email')
-            ->where('Estimate.id', $id)
+        return DB::table('Estimates')
+            ->join('Customers', 'Estimates.customer_id', '=', 'Customers.id')
+            ->select('Estimates.*', 'Customers.name as customer_name', 'Customers.email as customer_email')
+            ->where('Estimates.id', $id)
             ->first();
     }
 
@@ -206,10 +227,10 @@ class PrismaService
     {
         $estimate = self::getEstimate($id);
         if ($estimate) {
-            $estimate->items = DB::table('EstimateItem')
-                ->leftJoin('Item', 'EstimateItem.itemId', '=', 'Item.id')
-                ->select('EstimateItem.*', 'Item.name as item_name')
-                ->where('EstimateItem.estimateId', $id)
+            $estimate->items = DB::table('EstimateItems')
+                ->leftJoin('Items', 'EstimateItems.item_id', '=', 'Items.id')
+                ->select('EstimateItems.*', 'Items.name as item_name')
+                ->where('EstimateItems.estimate_id', $id)
                 ->get();
         }
         return $estimate;
@@ -217,92 +238,97 @@ class PrismaService
 
     public static function createEstimate($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('Estimate')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('Estimates')->insertGetId($data);
     }
 
     public static function updateEstimate($id, $data)
     {
-        $data['updatedAt'] = now();
-        return DB::table('Estimate')->where('id', $id)->update($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('Estimates')->where('id', $id)->update($data);
     }
 
     public static function deleteEstimate($id)
     {
-        DB::table('EstimateItem')->where('estimateId', $id)->delete();
-        return DB::table('Estimate')->where('id', $id)->delete();
+        DB::table('EstimateItems')->where('estimate_id', $id)->delete();
+        return DB::table('Estimates')->where('id', $id)->delete();
     }
 
     public static function createEstimateItem($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('EstimateItem')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('EstimateItems')->insertGetId($data);
     }
 
     public static function deleteEstimateItems($estimateId)
     {
-        return DB::table('EstimateItem')->where('estimateId', $estimateId)->delete();
+        return DB::table('EstimateItems')->where('estimate_id', $estimateId)->delete();
     }
 
     public static function generateEstimateNumber()
     {
-        $lastEstimate = DB::table('Estimate')->orderBy('id', 'desc')->first();
-        $number = $lastEstimate ? intval(substr($lastEstimate->estimateNumber, 4)) + 1 : 1;
+        $lastEstimate = DB::table('Estimates')->orderBy('id', 'desc')->first();
+        $number = $lastEstimate ? intval(substr($lastEstimate->estimate_number, 4)) + 1 : 1;
         return 'EST-' . str_pad($number, 5, '0', STR_PAD_LEFT);
     }
 
     public static function getExpenses($userId = null)
     {
-        $query = DB::table('Expense')
-            ->leftJoin('Customer', 'Expense.customerId', '=', 'Customer.id')
-            ->select('Expense.*', 'Customer.name as customer_name');
+        $query = DB::table('Expenses')
+            ->leftJoin('Customers', 'Expenses.customer_id', '=', 'Customers.id')
+            ->select('Expenses.*', 'Customers.name as customer_name');
         if ($userId) {
-            $query->where('Expense.userId', $userId);
+            $query->where('Expenses.user_id', $userId);
         }
-        return $query->orderBy('Expense.date', 'desc')->get();
+        return $query->orderBy('Expenses.date', 'desc')->get();
     }
 
     public static function getExpense($id)
     {
-        return DB::table('Expense')
-            ->leftJoin('Customer', 'Expense.customerId', '=', 'Customer.id')
-            ->select('Expense.*', 'Customer.name as customer_name')
-            ->where('Expense.id', $id)
+        return DB::table('Expenses')
+            ->leftJoin('Customers', 'Expenses.customer_id', '=', 'Customers.id')
+            ->select('Expenses.*', 'Customers.name as customer_name')
+            ->where('Expenses.id', $id)
             ->first();
     }
 
     public static function createExpense($data)
     {
-        $data['createdAt'] = now();
-        $data['updatedAt'] = now();
-        return DB::table('Expense')->insertGetId($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('Expenses')->insertGetId($data);
     }
 
     public static function updateExpense($id, $data)
     {
-        $data['updatedAt'] = now();
-        return DB::table('Expense')->where('id', $id)->update($data);
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('Expenses')->where('id', $id)->update($data);
     }
 
     public static function deleteExpense($id)
     {
-        return DB::table('Expense')->where('id', $id)->delete();
+        return DB::table('Expenses')->where('id', $id)->delete();
     }
 
     public static function getDashboardStats($userId = null)
     {
-        $invoiceQuery = DB::table('Invoice');
-        $expenseQuery = DB::table('Expense');
-        $customerQuery = DB::table('Customer');
-        $estimateQuery = DB::table('Estimate');
+        $invoiceQuery = DB::table('Invoices');
+        $expenseQuery = DB::table('Expenses');
+        $customerQuery = DB::table('Customers');
+        $estimateQuery = DB::table('Estimates');
 
         if ($userId) {
-            $invoiceQuery->where('userId', $userId);
-            $expenseQuery->where('userId', $userId);
-            $customerQuery->where('userId', $userId);
-            $estimateQuery->where('userId', $userId);
+            $invoiceQuery->where('user_id', $userId);
+            $expenseQuery->where('user_id', $userId);
+            $customerQuery->where('user_id', $userId);
+            $estimateQuery->where('user_id', $userId);
         }
 
         $totalInvoices = $invoiceQuery->count();
@@ -327,20 +353,20 @@ class PrismaService
     {
         $activities = collect();
 
-        $invoiceQuery = DB::table('Invoice')
-            ->join('Customer', 'Invoice.customerId', '=', 'Customer.id')
-            ->select('Invoice.id', 'Invoice.invoiceNumber as reference', 'Invoice.total as amount', 'Invoice.status', 'Invoice.createdAt', 'Customer.name as customer_name', DB::raw("'invoice' as type"));
+        $invoiceQuery = DB::table('Invoices')
+            ->join('Customers', 'Invoices.customer_id', '=', 'Customers.id')
+            ->select('Invoices.id', 'Invoices.invoice_number as reference', 'Invoices.total as amount', 'Invoices.status', 'Invoices.created_at', 'Customers.name as customer_name', DB::raw("'invoice' as type"));
         
-        $expenseQuery = DB::table('Expense')
-            ->select('Expense.id', 'Expense.description as reference', 'Expense.amount', 'Expense.category as status', 'Expense.createdAt', DB::raw("NULL as customer_name"), DB::raw("'expense' as type"));
+        $expenseQuery = DB::table('Expenses')
+            ->select('Expenses.id', 'Expenses.description as reference', 'Expenses.amount', 'Expenses.category as status', 'Expenses.created_at', DB::raw("NULL as customer_name"), DB::raw("'expense' as type"));
 
         if ($userId) {
-            $invoiceQuery->where('Invoice.userId', $userId);
-            $expenseQuery->where('Expense.userId', $userId);
+            $invoiceQuery->where('Invoices.user_id', $userId);
+            $expenseQuery->where('Expenses.user_id', $userId);
         }
 
         $activities = $invoiceQuery->union($expenseQuery)
-            ->orderBy('createdAt', 'desc')
+            ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
 

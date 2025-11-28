@@ -40,7 +40,7 @@ class ItemController extends Controller
     {
         $item = PrismaService::getItem($id);
 
-        if (!$item || $item->userId != auth()->id()) {
+        if (!$item || $item->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Item not found.');
         }
 
@@ -50,7 +50,7 @@ class ItemController extends Controller
     public function update(Request $request, $id)
     {
         $item = PrismaService::getItem($id);
-        if (!$item || $item->userId != auth()->id()) {
+        if (!$item || $item->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Item not found.');
         }
 
@@ -70,7 +70,7 @@ class ItemController extends Controller
     public function destroy($id)
     {
         $item = PrismaService::getItem($id);
-        if (!$item || $item->userId != auth()->id()) {
+        if (!$item || $item->user_id != auth()->id()) {
             return redirect()->back()->with('error', 'Item not found.');
         }
 
