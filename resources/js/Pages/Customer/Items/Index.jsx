@@ -13,7 +13,11 @@ export default function Index({ items, currency }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
 
-    const formatCurrency = (amount) => `${currency}${Number(amount).toFixed(2)}`;
+    const formatCurrency = (amount) => {
+        if (amount == null || isNaN(amount)) return `${currency}0.00`;
+        const num = Number(amount);
+        return isNaN(num) ? `${currency}0.00` : `${currency}${num.toFixed(2)}`;
+    };
 
     const createForm = useForm({ name: '', description: '', unitPrice: '', unit: 'unit', taxRate: '0' });
     const editForm = useForm({ name: '', description: '', unitPrice: '', unit: '', taxRate: '' });
@@ -25,7 +29,7 @@ export default function Index({ items, currency }) {
 
     const handleEdit = (item) => {
         setSelectedItem(item);
-        editForm.setData({ name: item.name || '', description: item.description || '', unitPrice: item.unitPrice || '', unit: item.unit || 'unit', taxRate: item.taxRate || '0' });
+        editForm.setData({ name: item.name || '', description: item.description || '', unitPrice: item.unit_price || '', unit: item.unit || 'unit', taxRate: item.tax_rate || '0' });
         setShowEditModal(true);
     };
 
@@ -41,9 +45,9 @@ export default function Index({ items, currency }) {
     const columns = [
         { key: 'name', label: 'Name' },
         { key: 'description', label: 'Description', render: (val) => val ? (val.length > 50 ? val.substring(0, 50) + '...' : val) : '-' },
-        { key: 'unitPrice', label: 'Unit Price', render: (val) => formatCurrency(val) },
+        { key: 'unit_price', label: 'Unit Price', render: (val) => formatCurrency(val) },
         { key: 'unit', label: 'Unit' },
-        { key: 'taxRate', label: 'Tax Rate', render: (val) => `${val || 0}%` },
+        { key: 'tax_rate', label: 'Tax Rate', render: (val) => val != null ? `${val}%` : '0%' },
     ];
 
     const renderActions = (item) => (
@@ -117,9 +121,9 @@ export default function Index({ items, currency }) {
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div><span className="text-sm text-gray-500">Name</span><p className="font-medium">{selectedItem.name}</p></div>
-                            <div><span className="text-sm text-gray-500">Unit Price</span><p className="font-medium">{formatCurrency(selectedItem.unitPrice)}</p></div>
+                            <div><span className="text-sm text-gray-500">Unit Price</span><p className="font-medium">{formatCurrency(selectedItem.unit_price)}</p></div>
                             <div><span className="text-sm text-gray-500">Unit</span><p className="font-medium">{selectedItem.unit || '-'}</p></div>
-                            <div><span className="text-sm text-gray-500">Tax Rate</span><p className="font-medium">{selectedItem.taxRate || 0}%</p></div>
+                            <div><span className="text-sm text-gray-500">Tax Rate</span><p className="font-medium">{selectedItem.tax_rate != null ? `${selectedItem.tax_rate}%` : '0%'}</p></div>
                         </div>
                         <div><span className="text-sm text-gray-500">Description</span><p className="font-medium">{selectedItem.description || '-'}</p></div>
                     </div>

@@ -12,11 +12,15 @@ import {
 
 export default function Dashboard({ stats, recentActivity, currency }) {
     const formatCurrency = (amount) => {
-        return `${currency}${Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (amount == null || isNaN(amount)) return `${currency}0.00`;
+        const num = Number(amount);
+        return isNaN(num) ? `${currency}0.00` : `${currency}${num.toFixed(2)}`;
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-GB', {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-GB', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -131,7 +135,7 @@ export default function Dashboard({ stats, recentActivity, currency }) {
                                             <td className="px-6 py-4 text-sm text-gray-600">{activity.customer_name || '-'}</td>
                                             <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(activity.amount)}</td>
                                             <td className="px-6 py-4">{getStatusBadge(activity.status, activity.type)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{formatDate(activity.createdAt)}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{formatDate(activity.created_at)}</td>
                                         </tr>
                                     ))
                                 )}

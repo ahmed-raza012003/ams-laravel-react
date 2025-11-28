@@ -14,8 +14,16 @@ export default function Index({ estimates, customers, items, currency }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedEstimate, setSelectedEstimate] = useState(null);
 
-    const formatCurrency = (amount) => `${currency}${Number(amount).toFixed(2)}`;
-    const formatDate = (date) => new Date(date).toLocaleDateString('en-GB');
+    const formatCurrency = (amount) => {
+        if (amount == null || isNaN(amount)) return `${currency}0.00`;
+        const num = Number(amount);
+        return isNaN(num) ? `${currency}0.00` : `${currency}${num.toFixed(2)}`;
+    };
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-GB');
+    };
 
     const emptyItem = { description: '', quantity: 1, unitPrice: '', taxRate: 0, itemId: '' };
     const createForm = useForm({ customerId: '', expiryDate: '', notes: '', items: [{ ...emptyItem }] });
@@ -28,7 +36,7 @@ export default function Index({ estimates, customers, items, currency }) {
         newItems[index][field] = value;
         if (field === 'itemId' && value) {
             const item = items.find(i => i.id == value);
-            if (item) { newItems[index].description = item.name; newItems[index].unitPrice = item.unitPrice; newItems[index].taxRate = item.taxRate || 0; }
+            if (item) { newItems[index].description = item.name; newItems[index].unitPrice = item.unit_price; newItems[index].taxRate = item.tax_rate || 0; }
         }
         form.setData('items', newItems);
     };
@@ -39,7 +47,7 @@ export default function Index({ estimates, customers, items, currency }) {
         const response = await fetch(`/admin/estimates/${estimate.id}`);
         const data = await response.json();
         setSelectedEstimate(data);
-        editForm.setData({ customerId: data.customerId || '', expiryDate: data.expiryDate ? data.expiryDate.split('T')[0] : '', status: data.status || 'DRAFT', notes: data.notes || '', items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, taxRate: i.taxRate || 0, itemId: i.itemId || '' })) || [{ ...emptyItem }] });
+        editForm.setData({ customerId: data.customer_id || '', expiryDate: data.expiry_date ? data.expiry_date.split('T')[0] : '', status: data.status || 'DRAFT', notes: data.notes || '', items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unit_price, taxRate: i.tax_rate || 0, itemId: i.item_id || '' })) || [{ ...emptyItem }] });
         setShowEditModal(true);
     };
 
@@ -52,10 +60,10 @@ export default function Index({ estimates, customers, items, currency }) {
     const statusColors = { DRAFT: 'bg-gray-100 text-gray-700', SENT: 'bg-blue-100 text-blue-700', ACCEPTED: 'bg-green-100 text-green-700', REJECTED: 'bg-red-100 text-red-700', EXPIRED: 'bg-yellow-100 text-yellow-700' };
 
     const columns = [
-        { key: 'estimateNumber', label: 'Estimate #' },
+        { key: 'estimate_number', label: 'Estimate #' },
         { key: 'customer_name', label: 'Customer' },
-        { key: 'issueDate', label: 'Issue Date', render: (val) => formatDate(val) },
-        { key: 'expiryDate', label: 'Expiry Date', render: (val) => formatDate(val) },
+        { key: 'issue_date', label: 'Issue Date', render: (val) => formatDate(val) },
+        { key: 'expiry_date', label: 'Expiry Date', render: (val) => formatDate(val) },
         { key: 'total', label: 'Total', render: (val) => formatCurrency(val) },
         { key: 'status', label: 'Status', render: (val) => <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[val]}`}>{val}</span> },
     ];
@@ -66,7 +74,7 @@ export default function Index({ estimates, customers, items, currency }) {
             <PrintButton 
                 pdfUrl={`/admin/estimates/${estimate.id}/export/pdf`}
                 excelUrl={`/admin/estimates/${estimate.id}/export/excel`}
-                invoiceNumber={estimate.estimateNumber}
+                invoiceNumber={estimate.estimate_number}
             />
             <button onClick={() => handleEdit(estimate)} className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>
             <button onClick={() => handleDelete(estimate)} className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
@@ -129,33 +137,33 @@ export default function Index({ estimates, customers, items, currency }) {
                 </form>
             </Modal>
 
-            <Modal show={showViewModal} onClose={() => setShowViewModal(false)} title={`Estimate ${selectedEstimate?.estimateNumber}`} maxWidth="2xl">
+            <Modal show={showViewModal} onClose={() => setShowViewModal(false)} title={`Estimate ${selectedEstimate?.estimate_number || ''}`} maxWidth="2xl">
                 {selectedEstimate && (
                     <div className="space-y-4">
                         <div className="flex justify-end mb-4">
                             <PrintButton 
                                 pdfUrl={`/admin/estimates/${selectedEstimate.id}/export/pdf`}
                                 excelUrl={`/admin/estimates/${selectedEstimate.id}/export/excel`}
-                                invoiceNumber={selectedEstimate.estimateNumber}
+                                invoiceNumber={selectedEstimate.estimate_number}
                             />
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedEstimate.customer_name}</p></div>
-                            <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedEstimate.issueDate)}</p></div>
-                            <div><span className="text-sm text-gray-500">Expiry Date</span><p className="font-medium">{formatDate(selectedEstimate.expiryDate)}</p></div>
+                            <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedEstimate.issue_date)}</p></div>
+                            <div><span className="text-sm text-gray-500">Expiry Date</span><p className="font-medium">{formatDate(selectedEstimate.expiry_date)}</p></div>
                         </div>
                         <div><span className="text-sm text-gray-500">Status</span><span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedEstimate.status]}`}>{selectedEstimate.status}</span></div>
                         <div className="border rounded-lg overflow-hidden">
-                            <table className="w-full text-sm"><thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Qty</th><th className="px-4 py-2 text-right">Price</th><th className="px-4 py-2 text-right">Tax</th><th className="px-4 py-2 text-right">Total</th></tr></thead><tbody>{selectedEstimate.items?.map((item, i) => <tr key={i} className="border-t"><td className="px-4 py-2">{item.description}</td><td className="px-4 py-2 text-right">{item.quantity}</td><td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-2 text-right">{item.taxRate}%</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td></tr>)}</tbody></table>
+                            <table className="w-full text-sm"><thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Qty</th><th className="px-4 py-2 text-right">Price</th><th className="px-4 py-2 text-right">Tax</th><th className="px-4 py-2 text-right">Total</th></tr></thead><tbody>{selectedEstimate.items?.map((item, i) => <tr key={i} className="border-t"><td className="px-4 py-2">{item.description}</td><td className="px-4 py-2 text-right">{item.quantity}</td><td className="px-4 py-2 text-right">{formatCurrency(item.unit_price)}</td><td className="px-4 py-2 text-right">{item.tax_rate != null ? `${item.tax_rate}%` : '0%'}</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td></tr>)}</tbody></table>
                         </div>
-                        <div className="flex justify-end"><div className="w-48 space-y-1 text-sm"><div className="flex justify-between"><span className="text-gray-500">Subtotal:</span><span>{formatCurrency(selectedEstimate.subtotal)}</span></div><div className="flex justify-between"><span className="text-gray-500">Tax:</span><span>{formatCurrency(selectedEstimate.taxAmount)}</span></div><div className="flex justify-between font-bold text-lg border-t pt-1"><span>Total:</span><span>{formatCurrency(selectedEstimate.total)}</span></div></div></div>
+                        <div className="flex justify-end"><div className="w-48 space-y-1 text-sm"><div className="flex justify-between"><span className="text-gray-500">Subtotal:</span><span>{formatCurrency(selectedEstimate.subtotal)}</span></div><div className="flex justify-between"><span className="text-gray-500">Tax:</span><span>{formatCurrency(selectedEstimate.tax_amount)}</span></div><div className="flex justify-between font-bold text-lg border-t pt-1"><span>Total:</span><span>{formatCurrency(selectedEstimate.total)}</span></div></div></div>
                     </div>
                 )}
             </Modal>
 
             <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Estimate" maxWidth="md">
                 <div className="space-y-4">
-                    <p className="text-gray-600">Are you sure you want to delete estimate <strong>{selectedEstimate?.estimateNumber}</strong>? This action cannot be undone.</p>
+                    <p className="text-gray-600">Are you sure you want to delete estimate <strong>{selectedEstimate?.estimate_number || ''}</strong>? This action cannot be undone.</p>
                     <div className="flex justify-end space-x-3"><button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button><button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button></div>
                 </div>
             </Modal>

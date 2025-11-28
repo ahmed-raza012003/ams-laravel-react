@@ -14,8 +14,16 @@ export default function Index({ invoices, customers, items, currency }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-    const formatCurrency = (amount) => `${currency}${Number(amount).toFixed(2)}`;
-    const formatDate = (date) => new Date(date).toLocaleDateString('en-GB');
+    const formatCurrency = (amount) => {
+        if (amount == null || isNaN(amount)) return `${currency}0.00`;
+        const num = Number(amount);
+        return isNaN(num) ? `${currency}0.00` : `${currency}${num.toFixed(2)}`;
+    };
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-GB');
+    };
 
     const emptyItem = { description: '', quantity: 1, unitPrice: '', taxRate: 0, itemId: '' };
     const createForm = useForm({ customerId: '', dueDate: '', notes: '', items: [{ ...emptyItem }] });
@@ -30,8 +38,8 @@ export default function Index({ invoices, customers, items, currency }) {
             const item = items.find(i => i.id == value);
             if (item) {
                 newItems[index].description = item.name;
-                newItems[index].unitPrice = item.unitPrice;
-                newItems[index].taxRate = item.taxRate || 0;
+                newItems[index].unitPrice = item.unit_price;
+                newItems[index].taxRate = item.tax_rate || 0;
             }
         }
         form.setData('items', newItems);
@@ -47,11 +55,11 @@ export default function Index({ invoices, customers, items, currency }) {
         const data = await response.json();
         setSelectedInvoice(data);
         editForm.setData({
-            customerId: data.customerId || '',
-            dueDate: data.dueDate ? data.dueDate.split('T')[0] : '',
+            customerId: data.customer_id || '',
+            dueDate: data.due_date ? data.due_date.split('T')[0] : '',
             status: data.status || 'DRAFT',
             notes: data.notes || '',
-            items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, taxRate: i.taxRate || 0, itemId: i.itemId || '' })) || [{ ...emptyItem }],
+            items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unit_price, taxRate: i.tax_rate || 0, itemId: i.item_id || '' })) || [{ ...emptyItem }],
         });
         setShowEditModal(true);
     };
@@ -74,10 +82,10 @@ export default function Index({ invoices, customers, items, currency }) {
     const statusColors = { DRAFT: 'bg-gray-100 text-gray-700', SENT: 'bg-blue-100 text-blue-700', PAID: 'bg-green-100 text-green-700', OVERDUE: 'bg-red-100 text-red-700', CANCELLED: 'bg-gray-100 text-gray-500' };
 
     const columns = [
-        { key: 'invoiceNumber', label: 'Invoice #' },
+        { key: 'invoice_number', label: 'Invoice #' },
         { key: 'customer_name', label: 'Customer' },
-        { key: 'issueDate', label: 'Issue Date', render: (val) => formatDate(val) },
-        { key: 'dueDate', label: 'Due Date', render: (val) => formatDate(val) },
+        { key: 'issue_date', label: 'Issue Date', render: (val) => formatDate(val) },
+        { key: 'due_date', label: 'Due Date', render: (val) => formatDate(val) },
         { key: 'total', label: 'Total', render: (val) => formatCurrency(val) },
         { key: 'status', label: 'Status', render: (val) => <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[val]}`}>{val}</span> },
     ];
@@ -88,7 +96,7 @@ export default function Index({ invoices, customers, items, currency }) {
             <PrintButton 
                 pdfUrl={`/admin/invoices/${invoice.id}/export/pdf`}
                 excelUrl={`/admin/invoices/${invoice.id}/export/excel`}
-                invoiceNumber={invoice.invoiceNumber}
+                invoiceNumber={invoice.invoice_number}
             />
             <button onClick={() => handleEdit(invoice)} className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>
             <button onClick={() => handleDelete(invoice)} className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
@@ -212,32 +220,32 @@ export default function Index({ invoices, customers, items, currency }) {
                 </form>
             </Modal>
 
-            <Modal show={showViewModal} onClose={() => setShowViewModal(false)} title={`Invoice ${selectedInvoice?.invoiceNumber}`} maxWidth="2xl">
+            <Modal show={showViewModal} onClose={() => setShowViewModal(false)} title={`Invoice ${selectedInvoice?.invoice_number || ''}`} maxWidth="2xl">
                 {selectedInvoice && (
                     <div className="space-y-4">
                         <div className="flex justify-end mb-4">
                             <PrintButton 
                                 pdfUrl={`/admin/invoices/${selectedInvoice.id}/export/pdf`}
                                 excelUrl={`/admin/invoices/${selectedInvoice.id}/export/excel`}
-                                invoiceNumber={selectedInvoice.invoiceNumber}
+                                invoiceNumber={selectedInvoice.invoice_number}
                             />
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedInvoice.customer_name}</p></div>
-                            <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedInvoice.issueDate)}</p></div>
-                            <div><span className="text-sm text-gray-500">Due Date</span><p className="font-medium">{formatDate(selectedInvoice.dueDate)}</p></div>
+                            <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedInvoice.issue_date)}</p></div>
+                            <div><span className="text-sm text-gray-500">Due Date</span><p className="font-medium">{formatDate(selectedInvoice.due_date)}</p></div>
                         </div>
                         <div><span className="text-sm text-gray-500">Status</span><span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedInvoice.status]}`}>{selectedInvoice.status}</span></div>
                         <div className="border rounded-lg overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Qty</th><th className="px-4 py-2 text-right">Price</th><th className="px-4 py-2 text-right">Tax</th><th className="px-4 py-2 text-right">Total</th></tr></thead>
-                                <tbody>{selectedInvoice.items?.map((item, i) => <tr key={i} className="border-t"><td className="px-4 py-2">{item.description}</td><td className="px-4 py-2 text-right">{item.quantity}</td><td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-2 text-right">{item.taxRate}%</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td></tr>)}</tbody>
+                                <tbody>{selectedInvoice.items?.map((item, i) => <tr key={i} className="border-t"><td className="px-4 py-2">{item.description}</td><td className="px-4 py-2 text-right">{item.quantity}</td><td className="px-4 py-2 text-right">{formatCurrency(item.unit_price)}</td><td className="px-4 py-2 text-right">{item.tax_rate != null ? `${item.tax_rate}%` : '0%'}</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td></tr>)}</tbody>
                             </table>
                         </div>
                         <div className="flex justify-end">
                             <div className="w-48 space-y-1 text-sm">
                                 <div className="flex justify-between"><span className="text-gray-500">Subtotal:</span><span>{formatCurrency(selectedInvoice.subtotal)}</span></div>
-                                <div className="flex justify-between"><span className="text-gray-500">Tax:</span><span>{formatCurrency(selectedInvoice.taxAmount)}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-500">Tax:</span><span>{formatCurrency(selectedInvoice.tax_amount)}</span></div>
                                 <div className="flex justify-between font-bold text-lg border-t pt-1"><span>Total:</span><span>{formatCurrency(selectedInvoice.total)}</span></div>
                             </div>
                         </div>
@@ -247,7 +255,7 @@ export default function Index({ invoices, customers, items, currency }) {
 
             <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Invoice" maxWidth="md">
                 <div className="space-y-4">
-                    <p className="text-gray-600">Are you sure you want to delete invoice <strong>{selectedInvoice?.invoiceNumber}</strong>? This action cannot be undone.</p>
+                    <p className="text-gray-600">Are you sure you want to delete invoice <strong>{selectedInvoice?.invoice_number || ''}</strong>? This action cannot be undone.</p>
                     <div className="flex justify-end space-x-3">
                         <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
                         <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
