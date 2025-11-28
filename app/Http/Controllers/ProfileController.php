@@ -18,9 +18,19 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        $userWithRole = \Illuminate\Support\Facades\DB::table('Users')
+            ->join('Roles', 'Users.role_id', '=', 'Roles.id')
+            ->select('Users.*', 'Roles.name as role_name')
+            ->where('Users.id', $user->id)
+            ->first();
+
+        $role = $userWithRole ? strtolower($userWithRole->role_name) : null;
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'role' => $role,
         ]);
     }
 

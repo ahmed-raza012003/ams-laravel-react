@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\PrismaService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,10 +37,25 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Get customer role
+        $customerRole = PrismaService::getRoleByName('customer');
+        
+        if (!$customerRole) {
+            return redirect()->back()->withErrors(['email' => 'Registration is currently unavailable. Please contact support.']);
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role_id' => $customerRole->id,
+        ]);
+
+        // Create Customer record linked to the user
+        PrismaService::createCustomer([
+            'userId' => $user->id,
+            'name' => $request->name,
+            'email' => $request->email,
         ]);
 
         event(new Registered($user));
