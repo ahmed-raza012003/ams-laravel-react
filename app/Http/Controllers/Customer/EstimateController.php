@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\EstimateExportService;
+use App\Services\ExportService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -165,5 +167,57 @@ class EstimateController extends Controller
         PrismaService::deleteEstimate($id);
 
         return redirect()->back()->with('success', 'Estimate deleted successfully.');
+    }
+
+    public function exportPdf($id)
+    {
+        try {
+            $estimate = PrismaService::getEstimate($id);
+            if (!$estimate || $estimate->user_id != auth()->id()) {
+                return redirect()->back()->with('error', 'Estimate not found.');
+            }
+            $pdf = EstimateExportService::generateSinglePdf($id);
+            $filename = ExportService::generateFilename('Estimate', $estimate->estimate_number ?? $id, 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportExcel($id)
+    {
+        try {
+            $estimate = PrismaService::getEstimate($id);
+            if (!$estimate || $estimate->user_id != auth()->id()) {
+                return redirect()->back()->with('error', 'Estimate not found.');
+            }
+            return EstimateExportService::generateSingleExcel($id);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllPdf()
+    {
+        try {
+            $userId = auth()->id();
+            $estimates = PrismaService::getEstimates($userId);
+            $pdf = EstimateExportService::generateListPdf($estimates);
+            $filename = ExportService::generateFilename('Estimates', 'All', 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllExcel()
+    {
+        try {
+            $userId = auth()->id();
+            $estimates = PrismaService::getEstimates($userId);
+            return EstimateExportService::generateListExcel($estimates);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
     }
 }

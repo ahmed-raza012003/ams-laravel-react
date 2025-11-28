@@ -3,6 +3,8 @@ import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import DataTable from '@/Components/DataTable';
 import Modal from '@/Components/Modal';
+import PrintButton from '@/Components/PrintButton';
+import ExportButton from '@/Components/ExportButton';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ invoices, customers, items, currency }) {
@@ -83,6 +85,11 @@ export default function Index({ invoices, customers, items, currency }) {
     const renderActions = (invoice) => (
         <>
             <button onClick={() => handleView(invoice)} className="p-2 text-gray-600 hover:text-[#2ca48b] hover:bg-gray-100 rounded-lg transition-colors"><EyeIcon className="w-4 h-4" /></button>
+            <PrintButton 
+                pdfUrl={`/admin/invoices/${invoice.id}/export/pdf`}
+                excelUrl={`/admin/invoices/${invoice.id}/export/excel`}
+                invoiceNumber={invoice.invoiceNumber}
+            />
             <button onClick={() => handleEdit(invoice)} className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>
             <button onClick={() => handleDelete(invoice)} className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
         </>
@@ -129,9 +136,15 @@ export default function Index({ invoices, customers, items, currency }) {
             <Head title="Invoices" />
             <div className="mb-6 flex justify-between items-center">
                 <p className="text-gray-600">Manage your invoices</p>
-                <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-[#2ca48b] text-white rounded-lg hover:bg-[#238b74] transition-colors">
-                    <PlusIcon className="w-5 h-5 mr-2" />Create Invoice
-                </button>
+                <div className="flex items-center space-x-3">
+                    <ExportButton 
+                        pdfUrl="/admin/invoices/export/pdf"
+                        excelUrl="/admin/invoices/export/excel"
+                    />
+                    <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-[#2ca48b] text-white rounded-lg hover:bg-[#238b74] transition-colors">
+                        <PlusIcon className="w-5 h-5 mr-2" />Create Invoice
+                    </button>
+                </div>
             </div>
             <DataTable columns={columns} data={invoices} actions={renderActions} searchPlaceholder="Search invoices..." emptyMessage="No invoices found" />
 
@@ -202,6 +215,13 @@ export default function Index({ invoices, customers, items, currency }) {
             <Modal show={showViewModal} onClose={() => setShowViewModal(false)} title={`Invoice ${selectedInvoice?.invoiceNumber}`} maxWidth="2xl">
                 {selectedInvoice && (
                     <div className="space-y-4">
+                        <div className="flex justify-end mb-4">
+                            <PrintButton 
+                                pdfUrl={`/admin/invoices/${selectedInvoice.id}/export/pdf`}
+                                excelUrl={`/admin/invoices/${selectedInvoice.id}/export/excel`}
+                                invoiceNumber={selectedInvoice.invoiceNumber}
+                            />
+                        </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedInvoice.customer_name}</p></div>
                             <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedInvoice.issueDate)}</p></div>

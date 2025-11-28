@@ -3,6 +3,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import DataTable from '@/Components/DataTable';
 import Modal from '@/Components/Modal';
+import ExportButton from '@/Components/ExportButton';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ customers }) {
@@ -160,10 +161,16 @@ export default function Index({ customers }) {
             <Head title="Customers" />
             <div className="mb-6 flex justify-between items-center">
                 <p className="text-gray-600">Manage your customers</p>
-                <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-[#2ca48b] text-white rounded-lg hover:bg-[#238b74] transition-colors">
-                    <PlusIcon className="w-5 h-5 mr-2" />
-                    Add Customer
-                </button>
+                <div className="flex items-center space-x-3">
+                    <ExportButton 
+                        pdfUrl="/admin/customers/export/pdf"
+                        excelUrl="/admin/customers/export/excel"
+                    />
+                    <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-[#2ca48b] text-white rounded-lg hover:bg-[#238b74] transition-colors">
+                        <PlusIcon className="w-5 h-5 mr-2" />
+                        Add Customer
+                    </button>
+                </div>
             </div>
             <DataTable columns={columns} data={customers} actions={renderActions} searchPlaceholder="Search customers..." emptyMessage="No customers found" />
 

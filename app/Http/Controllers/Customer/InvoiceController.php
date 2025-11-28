@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\InvoiceExportService;
+use App\Services\ExportService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -165,5 +167,57 @@ class InvoiceController extends Controller
         PrismaService::deleteInvoice($id);
 
         return redirect()->back()->with('success', 'Invoice deleted successfully.');
+    }
+
+    public function exportPdf($id)
+    {
+        try {
+            $invoice = PrismaService::getInvoice($id);
+            if (!$invoice || $invoice->user_id != auth()->id()) {
+                return redirect()->back()->with('error', 'Invoice not found.');
+            }
+            $pdf = InvoiceExportService::generateSinglePdf($id);
+            $filename = ExportService::generateFilename('Invoice', $invoice->invoice_number ?? $id, 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportExcel($id)
+    {
+        try {
+            $invoice = PrismaService::getInvoice($id);
+            if (!$invoice || $invoice->user_id != auth()->id()) {
+                return redirect()->back()->with('error', 'Invoice not found.');
+            }
+            return InvoiceExportService::generateSingleExcel($id);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllPdf()
+    {
+        try {
+            $userId = auth()->id();
+            $invoices = PrismaService::getInvoices($userId);
+            $pdf = InvoiceExportService::generateListPdf($invoices);
+            $filename = ExportService::generateFilename('Invoices', 'All', 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllExcel()
+    {
+        try {
+            $userId = auth()->id();
+            $invoices = PrismaService::getInvoices($userId);
+            return InvoiceExportService::generateListExcel($invoices);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
     }
 }

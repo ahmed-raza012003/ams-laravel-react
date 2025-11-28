@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\InvoiceExportService;
+use App\Services\ExportService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -160,5 +162,48 @@ class InvoiceController extends Controller
         PrismaService::updateInvoice($id, ['status' => $validated['status']]);
 
         return redirect()->back()->with('success', 'Invoice status updated.');
+    }
+
+    public function exportPdf($id)
+    {
+        try {
+            $pdf = InvoiceExportService::generateSinglePdf($id);
+            $invoice = PrismaService::getInvoice($id);
+            $filename = ExportService::generateFilename('Invoice', $invoice->invoice_number ?? $id, 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportExcel($id)
+    {
+        try {
+            return InvoiceExportService::generateSingleExcel($id);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllPdf()
+    {
+        try {
+            $invoices = PrismaService::getInvoices();
+            $pdf = InvoiceExportService::generateListPdf($invoices);
+            $filename = ExportService::generateFilename('Invoices', 'All', 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllExcel()
+    {
+        try {
+            $invoices = PrismaService::getInvoices();
+            return InvoiceExportService::generateListExcel($invoices);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
     }
 }

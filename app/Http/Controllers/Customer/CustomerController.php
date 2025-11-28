@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\CustomerExportService;
+use App\Services\ExportService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -83,5 +85,29 @@ class CustomerController extends Controller
         PrismaService::deleteCustomer($id);
 
         return redirect()->back()->with('success', 'Customer deleted successfully.');
+    }
+
+    public function exportAllPdf()
+    {
+        try {
+            $userId = auth()->id();
+            $customers = PrismaService::getCustomers($userId);
+            $pdf = CustomerExportService::generateListPdf($customers);
+            $filename = ExportService::generateFilename('Customers', 'All', 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllExcel()
+    {
+        try {
+            $userId = auth()->id();
+            $customers = PrismaService::getCustomers($userId);
+            return CustomerExportService::generateListExcel($customers);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
     }
 }

@@ -3,6 +3,8 @@ import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import DataTable from '@/Components/DataTable';
 import Modal from '@/Components/Modal';
+import PrintButton from '@/Components/PrintButton';
+import ExportButton from '@/Components/ExportButton';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ estimates, customers, items, currency }) {
@@ -61,6 +63,11 @@ export default function Index({ estimates, customers, items, currency }) {
     const renderActions = (estimate) => (
         <>
             <button onClick={() => handleView(estimate)} className="p-2 text-gray-600 hover:text-[#2ca48b] hover:bg-gray-100 rounded-lg transition-colors"><EyeIcon className="w-4 h-4" /></button>
+            <PrintButton 
+                pdfUrl={`/admin/estimates/${estimate.id}/export/pdf`}
+                excelUrl={`/admin/estimates/${estimate.id}/export/excel`}
+                invoiceNumber={estimate.estimateNumber}
+            />
             <button onClick={() => handleEdit(estimate)} className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>
             <button onClick={() => handleDelete(estimate)} className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
         </>
@@ -87,7 +94,13 @@ export default function Index({ estimates, customers, items, currency }) {
             <Head title="Estimates" />
             <div className="mb-6 flex justify-between items-center">
                 <p className="text-gray-600">Manage your quotes and estimates</p>
-                <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-[#2ca48b] text-white rounded-lg hover:bg-[#238b74] transition-colors"><PlusIcon className="w-5 h-5 mr-2" />Create Estimate</button>
+                <div className="flex items-center space-x-3">
+                    <ExportButton 
+                        pdfUrl="/admin/estimates/export/pdf"
+                        excelUrl="/admin/estimates/export/excel"
+                    />
+                    <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-[#2ca48b] text-white rounded-lg hover:bg-[#238b74] transition-colors"><PlusIcon className="w-5 h-5 mr-2" />Create Estimate</button>
+                </div>
             </div>
             <DataTable columns={columns} data={estimates} actions={renderActions} searchPlaceholder="Search estimates..." emptyMessage="No estimates found" />
 
@@ -119,6 +132,13 @@ export default function Index({ estimates, customers, items, currency }) {
             <Modal show={showViewModal} onClose={() => setShowViewModal(false)} title={`Estimate ${selectedEstimate?.estimateNumber}`} maxWidth="2xl">
                 {selectedEstimate && (
                     <div className="space-y-4">
+                        <div className="flex justify-end mb-4">
+                            <PrintButton 
+                                pdfUrl={`/admin/estimates/${selectedEstimate.id}/export/pdf`}
+                                excelUrl={`/admin/estimates/${selectedEstimate.id}/export/excel`}
+                                invoiceNumber={selectedEstimate.estimateNumber}
+                            />
+                        </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedEstimate.customer_name}</p></div>
                             <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedEstimate.issueDate)}</p></div>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\EstimateExportService;
+use App\Services\ExportService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -149,5 +151,48 @@ class EstimateController extends Controller
         PrismaService::deleteEstimate($id);
 
         return redirect()->back()->with('success', 'Estimate deleted successfully.');
+    }
+
+    public function exportPdf($id)
+    {
+        try {
+            $pdf = EstimateExportService::generateSinglePdf($id);
+            $estimate = PrismaService::getEstimate($id);
+            $filename = ExportService::generateFilename('Estimate', $estimate->estimate_number ?? $id, 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportExcel($id)
+    {
+        try {
+            return EstimateExportService::generateSingleExcel($id);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllPdf()
+    {
+        try {
+            $estimates = PrismaService::getEstimates();
+            $pdf = EstimateExportService::generateListPdf($estimates);
+            $filename = ExportService::generateFilename('Estimates', 'All', 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllExcel()
+    {
+        try {
+            $estimates = PrismaService::getEstimates();
+            return EstimateExportService::generateListExcel($estimates);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
     }
 }

@@ -123,4 +123,21 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Company Information
+    |--------------------------------------------------------------------------
+    |
+    | These values are used for generating PDF documents and invoices.
+    | Configure these in your ".env" file.
+    |
+    */
+
+    'company_name' => env('COMPANY_NAME', env('APP_NAME', 'FinanceFlow')),
+    'company_logo' => env('COMPANY_LOGO', null),
+    'company_address' => env('COMPANY_ADDRESS', null),
+    'company_phone' => env('COMPANY_PHONE', null),
+    'company_email' => env('COMPANY_EMAIL', null),
+    'company_website' => env('COMPANY_WEBSITE', null),
+
 ];

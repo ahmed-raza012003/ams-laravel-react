@@ -55,12 +55,16 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/customers/{id}', [AdminCustomerController::class, 'show'])->name('customers.show');
     Route::put('/customers/{id}', [AdminCustomerController::class, 'update'])->name('customers.update');
     Route::delete('/customers/{id}', [AdminCustomerController::class, 'destroy'])->name('customers.destroy');
+    Route::get('/customers/export/pdf', [AdminCustomerController::class, 'exportAllPdf'])->name('customers.export.all.pdf');
+    Route::get('/customers/export/excel', [AdminCustomerController::class, 'exportAllExcel'])->name('customers.export.all.excel');
     
     Route::get('/items', [AdminItemController::class, 'index'])->name('items.index');
     Route::post('/items', [AdminItemController::class, 'store'])->name('items.store');
     Route::get('/items/{id}', [AdminItemController::class, 'show'])->name('items.show');
     Route::put('/items/{id}', [AdminItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{id}', [AdminItemController::class, 'destroy'])->name('items.destroy');
+    Route::get('/items/export/pdf', [AdminItemController::class, 'exportAllPdf'])->name('items.export.all.pdf');
+    Route::get('/items/export/excel', [AdminItemController::class, 'exportAllExcel'])->name('items.export.all.excel');
     
     Route::get('/invoices', [AdminInvoiceController::class, 'index'])->name('invoices.index');
     Route::post('/invoices', [AdminInvoiceController::class, 'store'])->name('invoices.store');
@@ -68,18 +72,28 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::put('/invoices/{id}', [AdminInvoiceController::class, 'update'])->name('invoices.update');
     Route::delete('/invoices/{id}', [AdminInvoiceController::class, 'destroy'])->name('invoices.destroy');
     Route::patch('/invoices/{id}/status', [AdminInvoiceController::class, 'updateStatus'])->name('invoices.status');
+    Route::get('/invoices/{id}/export/pdf', [AdminInvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
+    Route::get('/invoices/{id}/export/excel', [AdminInvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
+    Route::get('/invoices/export/pdf', [AdminInvoiceController::class, 'exportAllPdf'])->name('invoices.export.all.pdf');
+    Route::get('/invoices/export/excel', [AdminInvoiceController::class, 'exportAllExcel'])->name('invoices.export.all.excel');
     
     Route::get('/estimates', [AdminEstimateController::class, 'index'])->name('estimates.index');
     Route::post('/estimates', [AdminEstimateController::class, 'store'])->name('estimates.store');
     Route::get('/estimates/{id}', [AdminEstimateController::class, 'show'])->name('estimates.show');
     Route::put('/estimates/{id}', [AdminEstimateController::class, 'update'])->name('estimates.update');
     Route::delete('/estimates/{id}', [AdminEstimateController::class, 'destroy'])->name('estimates.destroy');
+    Route::get('/estimates/{id}/export/pdf', [AdminEstimateController::class, 'exportPdf'])->name('estimates.export.pdf');
+    Route::get('/estimates/{id}/export/excel', [AdminEstimateController::class, 'exportExcel'])->name('estimates.export.excel');
+    Route::get('/estimates/export/pdf', [AdminEstimateController::class, 'exportAllPdf'])->name('estimates.export.all.pdf');
+    Route::get('/estimates/export/excel', [AdminEstimateController::class, 'exportAllExcel'])->name('estimates.export.all.excel');
     
     Route::get('/expenses', [AdminExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [AdminExpenseController::class, 'store'])->name('expenses.store');
     Route::get('/expenses/{id}', [AdminExpenseController::class, 'show'])->name('expenses.show');
     Route::put('/expenses/{id}', [AdminExpenseController::class, 'update'])->name('expenses.update');
     Route::delete('/expenses/{id}', [AdminExpenseController::class, 'destroy'])->name('expenses.destroy');
+    Route::get('/expenses/export/pdf', [AdminExpenseController::class, 'exportAllPdf'])->name('expenses.export.all.pdf');
+    Route::get('/expenses/export/excel', [AdminExpenseController::class, 'exportAllExcel'])->name('expenses.export.all.excel');
     
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
@@ -96,30 +110,44 @@ Route::middleware(['auth', 'verified', 'role:customer'])->prefix('customer')->na
     Route::get('/customers/{id}', [CustomerCustomerController::class, 'show'])->name('customers.show');
     Route::put('/customers/{id}', [CustomerCustomerController::class, 'update'])->name('customers.update');
     Route::delete('/customers/{id}', [CustomerCustomerController::class, 'destroy'])->name('customers.destroy');
+    Route::get('/customers/export/pdf', [CustomerCustomerController::class, 'exportAllPdf'])->name('customers.export.all.pdf');
+    Route::get('/customers/export/excel', [CustomerCustomerController::class, 'exportAllExcel'])->name('customers.export.all.excel');
     
     Route::get('/items', [CustomerItemController::class, 'index'])->name('items.index');
     Route::post('/items', [CustomerItemController::class, 'store'])->name('items.store');
     Route::get('/items/{id}', [CustomerItemController::class, 'show'])->name('items.show');
     Route::put('/items/{id}', [CustomerItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{id}', [CustomerItemController::class, 'destroy'])->name('items.destroy');
+    Route::get('/items/export/pdf', [CustomerItemController::class, 'exportAllPdf'])->name('items.export.all.pdf');
+    Route::get('/items/export/excel', [CustomerItemController::class, 'exportAllExcel'])->name('items.export.all.excel');
     
     Route::get('/invoices', [CustomerInvoiceController::class, 'index'])->name('invoices.index');
     Route::post('/invoices', [CustomerInvoiceController::class, 'store'])->name('invoices.store');
     Route::get('/invoices/{id}', [CustomerInvoiceController::class, 'show'])->name('invoices.show');
     Route::put('/invoices/{id}', [CustomerInvoiceController::class, 'update'])->name('invoices.update');
     Route::delete('/invoices/{id}', [CustomerInvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::get('/invoices/{id}/export/pdf', [CustomerInvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
+    Route::get('/invoices/{id}/export/excel', [CustomerInvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
+    Route::get('/invoices/export/pdf', [CustomerInvoiceController::class, 'exportAllPdf'])->name('invoices.export.all.pdf');
+    Route::get('/invoices/export/excel', [CustomerInvoiceController::class, 'exportAllExcel'])->name('invoices.export.all.excel');
     
     Route::get('/estimates', [CustomerEstimateController::class, 'index'])->name('estimates.index');
     Route::post('/estimates', [CustomerEstimateController::class, 'store'])->name('estimates.store');
     Route::get('/estimates/{id}', [CustomerEstimateController::class, 'show'])->name('estimates.show');
     Route::put('/estimates/{id}', [CustomerEstimateController::class, 'update'])->name('estimates.update');
     Route::delete('/estimates/{id}', [CustomerEstimateController::class, 'destroy'])->name('estimates.destroy');
+    Route::get('/estimates/{id}/export/pdf', [CustomerEstimateController::class, 'exportPdf'])->name('estimates.export.pdf');
+    Route::get('/estimates/{id}/export/excel', [CustomerEstimateController::class, 'exportExcel'])->name('estimates.export.excel');
+    Route::get('/estimates/export/pdf', [CustomerEstimateController::class, 'exportAllPdf'])->name('estimates.export.all.pdf');
+    Route::get('/estimates/export/excel', [CustomerEstimateController::class, 'exportAllExcel'])->name('estimates.export.all.excel');
     
     Route::get('/expenses', [CustomerExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [CustomerExpenseController::class, 'store'])->name('expenses.store');
     Route::get('/expenses/{id}', [CustomerExpenseController::class, 'show'])->name('expenses.show');
     Route::put('/expenses/{id}', [CustomerExpenseController::class, 'update'])->name('expenses.update');
     Route::delete('/expenses/{id}', [CustomerExpenseController::class, 'destroy'])->name('expenses.destroy');
+    Route::get('/expenses/export/pdf', [CustomerExpenseController::class, 'exportAllPdf'])->name('expenses.export.all.pdf');
+    Route::get('/expenses/export/excel', [CustomerExpenseController::class, 'exportAllExcel'])->name('expenses.export.all.excel');
 });
 
 require __DIR__.'/auth.php';

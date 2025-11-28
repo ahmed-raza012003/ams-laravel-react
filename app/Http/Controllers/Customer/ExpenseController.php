@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\ExpenseExportService;
+use App\Services\ExportService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -110,5 +112,29 @@ class ExpenseController extends Controller
         PrismaService::deleteExpense($id);
 
         return redirect()->back()->with('success', 'Expense deleted successfully.');
+    }
+
+    public function exportAllPdf()
+    {
+        try {
+            $userId = auth()->id();
+            $expenses = PrismaService::getExpenses($userId);
+            $pdf = ExpenseExportService::generateListPdf($expenses);
+            $filename = ExportService::generateFilename('Expenses', 'All', 'pdf');
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function exportAllExcel()
+    {
+        try {
+            $userId = auth()->id();
+            $expenses = PrismaService::getExpenses($userId);
+            return ExpenseExportService::generateListExcel($expenses);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate Excel: ' . $e->getMessage());
+        }
     }
 }
