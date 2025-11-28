@@ -13,7 +13,7 @@ export default function Edit({ mustVerifyEmail, status, role }) {
             <Head title="Profile" />
 
             <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
@@ -21,12 +21,12 @@ export default function Edit({ mustVerifyEmail, status, role }) {
                     />
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <UpdatePasswordForm className="max-w-xl" />
                 </div>
 
                 {role === 'admin' && (
-                    <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <DeleteUserForm className="max-w-xl" />
                     </div>
                 )}
