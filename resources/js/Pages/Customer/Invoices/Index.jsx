@@ -27,7 +27,7 @@ export default function Index({ invoices, customers, items, salesCategories, cur
 
     const emptyItem = { description: '', quantity: 1, unitPrice: '', taxRate: 0, itemId: '' };
     const createForm = useForm({ customerId: '', dueDate: '', salesCategoryId: '', notes: '', items: [{ ...emptyItem }] });
-    const editForm = useForm({ customerId: '', dueDate: '', status: '', salesCategoryId: '', notes: '', items: [] });
+    const editForm = useForm({ customerId: '', dueDate: '', salesCategoryId: '', notes: '', items: [] });
 
     const addItem = (form) => form.setData('items', [...form.data.items, { ...emptyItem }]);
     const removeItem = (form, index) => form.setData('items', form.data.items.filter((_, i) => i !== index));
@@ -57,12 +57,59 @@ export default function Index({ invoices, customers, items, salesCategories, cur
         editForm.setData({
             customerId: data.customer_id || '',
             dueDate: data.due_date ? data.due_date.split('T')[0] : '',
-            status: data.status || 'DRAFT',
             salesCategoryId: data.sales_category_id || '',
             notes: data.notes || '',
             items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unit_price, taxRate: i.tax_rate || 0, itemId: i.item_id || '' })) || [{ ...emptyItem }],
         });
         setShowEditModal(true);
+    };
+
+    const handleStatusChange = async (invoice, newStatus) => {
+        if (newStatus === invoice.status) return;
+        
+        const validStatuses = getValidNextStatuses(invoice.status);
+        if (!validStatuses.includes(newStatus)) {
+            alert(`Invalid status transition. Valid next statuses: ${validStatuses.join(', ')}`);
+            return;
+        }
+
+        // Fetch current invoice data first
+        try {
+            const response = await fetch(`/customer/invoices/${invoice.id}`);
+            const data = await response.json();
+            
+            // Prepare items array from current invoice
+            const items = data.items?.map(i => ({
+                description: i.description,
+                quantity: i.quantity,
+                unitPrice: i.unit_price,
+                taxRate: i.tax_rate || 0,
+                itemId: i.item_id || ''
+            })) || [];
+
+            router.put(`/customer/invoices/${invoice.id}`, {
+                status: newStatus,
+                customerId: data.customer_id || invoice.customer_id,
+                dueDate: data.due_date ? data.due_date.split('T')[0] : invoice.due_date,
+                salesCategoryId: data.sales_category_id || invoice.sales_category_id,
+                notes: data.notes || invoice.notes || '',
+                items: items
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    router.reload({ only: ['invoices'] });
+                },
+                onError: (errors) => {
+                    if (errors.status) {
+                        alert(errors.status);
+                    } else {
+                        alert('Failed to update status');
+                    }
+                }
+            });
+        } catch (error) {
+            alert('Error updating status: ' + error.message);
+        }
     };
 
     const handleUpdate = (e) => {
@@ -82,14 +129,14 @@ export default function Index({ invoices, customers, items, salesCategories, cur
 
     const statusColors = {
         DRAFT: 'bg-gray-100 text-gray-700',
-        PENDING: 'bg-yellow-100 text-yellow-700',
-        OPEN: 'bg-blue-100 text-blue-700',
-        PARTIALLY_PAID: 'bg-indigo-100 text-indigo-700',
-        PAID: 'bg-green-100 text-green-700',
-        OVERDUE: 'bg-red-100 text-red-700',
-        UNPAID: 'bg-orange-100 text-orange-700',
+        PENDING: 'bg-gray-100 text-gray-700',
+        OPEN: 'bg-gray-100 text-gray-700',
+        PARTIALLY_PAID: 'bg-gray-100 text-gray-700',
+        PAID: 'bg-[#2ca48b] bg-opacity-10 text-[#2ca48b]',
+        OVERDUE: 'bg-gray-100 text-gray-700',
+        UNPAID: 'bg-gray-100 text-gray-700',
         VOID: 'bg-gray-100 text-gray-500',
-        REFUNDED: 'bg-pink-100 text-pink-700'
+        REFUNDED: 'bg-gray-100 text-gray-700'
     };
 
     const getValidNextStatuses = (currentStatus) => {
@@ -113,7 +160,57 @@ export default function Index({ invoices, customers, items, salesCategories, cur
         { key: 'issue_date', label: 'Issue Date', render: (val) => formatDate(val) },
         { key: 'due_date', label: 'Due Date', render: (val) => formatDate(val) },
         { key: 'total', label: 'Total', render: (val) => formatCurrency(val) },
-        { key: 'status', label: 'Status', render: (val) => <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[val]}`}>{val}</span> },
+        { 
+            key: 'status', 
+            label: 'Status', 
+            render: (val, row) => {
+                // Terminal statuses that cannot be changed
+                const terminalStatuses = ['PAID', 'VOID', 'REFUNDED'];
+                const isTerminal = terminalStatuses.includes(val);
+                
+                if (isTerminal) {
+                    return (
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[val] || 'bg-gray-100 text-gray-700'}`}>
+                            {val.replace(/_/g, ' ')}
+                        </span>
+                    );
+                }
+                
+                const validStatuses = getValidNextStatuses(val);
+                const allStatuses = ['DRAFT', 'PENDING', 'OPEN', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'UNPAID', 'VOID', 'REFUNDED'];
+                // Only show current status and valid next statuses
+                const availableStatuses = allStatuses.filter(status => status === val || validStatuses.includes(status));
+                
+                return (
+                    <div className="relative group">
+                        <select 
+                            value={val} 
+                            onChange={(e) => handleStatusChange(row, e.target.value)}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 bg-white text-gray-700 cursor-pointer focus:ring-2 focus:ring-[#2ca48b] focus:border-[#2ca48b] focus:outline-none appearance-none pr-8 transition-all duration-200 group-hover:bg-[#2ca48b] group-hover:text-white group-hover:border-[#2ca48b]"
+                            style={{ 
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                                backgroundPosition: 'right 0.5rem center',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundSize: '1.5em 1.5em',
+                                paddingRight: '2rem'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
+                            }}
+                        >
+                            {availableStatuses.map(status => (
+                                <option key={status} value={status} className="bg-white text-gray-700">
+                                    {status.replace(/_/g, ' ')}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                );
+            }
+        },
     ];
 
     const renderActions = (invoice) => (
@@ -236,28 +333,6 @@ export default function Index({ invoices, customers, items, salesCategories, cur
                                 <option value="">Select category</option>
                                 {salesCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
                             </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                            <select value={editForm.data.status} onChange={e => editForm.setData('status', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required>
-                                {(() => {
-                                    const currentStatus = selectedInvoice?.status || 'DRAFT';
-                                    const validStatuses = getValidNextStatuses(currentStatus);
-                                    const allStatuses = ['DRAFT', 'PENDING', 'OPEN', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'UNPAID', 'VOID', 'REFUNDED'];
-                                    return allStatuses.map(status => {
-                                        const isCurrent = status === currentStatus;
-                                        const isValid = validStatuses.includes(status) || isCurrent;
-                                        return (
-                                            <option key={status} value={status} disabled={!isValid}>
-                                                {status.replace(/_/g, ' ')} {isCurrent ? '(Current)' : ''}
-                                            </option>
-                                        );
-                                    });
-                                })()}
-                            </select>
-                            {editForm.data.status !== selectedInvoice?.status && !getValidNextStatuses(selectedInvoice?.status || 'DRAFT').includes(editForm.data.status) && (
-                                <p className="mt-1 text-sm text-red-600">Invalid status transition</p>
-                            )}
                         </div>
                     </div>
                     <ItemsForm form={editForm} />

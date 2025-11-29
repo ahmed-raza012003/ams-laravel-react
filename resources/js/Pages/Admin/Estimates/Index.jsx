@@ -62,25 +62,47 @@ export default function Index({ estimates, customers, items, salesCategories, cu
         
         const validStatuses = getValidNextStatuses(estimate.status);
         if (!validStatuses.includes(newStatus)) {
-            alert('Invalid status transition');
+            alert(`Invalid status transition. Valid next statuses: ${validStatuses.join(', ')}`);
             return;
         }
 
-        router.put(`/admin/estimates/${estimate.id}`, {
-            status: newStatus,
-            customerId: estimate.customer_id,
-            expiryDate: estimate.expiry_date,
-            salesCategoryId: estimate.sales_category_id,
-            notes: estimate.notes || '',
-            items: []
-        }, {
-            preserveScroll: true,
-            onError: (errors) => {
-                if (errors.status) {
-                    alert(errors.status);
+        // Fetch current estimate data first
+        try {
+            const response = await fetch(`/admin/estimates/${estimate.id}`);
+            const data = await response.json();
+            
+            // Prepare items array from current estimate
+            const items = data.items?.map(i => ({
+                description: i.description,
+                quantity: i.quantity,
+                unitPrice: i.unit_price,
+                taxRate: i.tax_rate || 0,
+                itemId: i.item_id || ''
+            })) || [];
+
+            router.put(`/admin/estimates/${estimate.id}`, {
+                status: newStatus,
+                customerId: data.customer_id || estimate.customer_id,
+                expiryDate: data.expiry_date ? data.expiry_date.split('T')[0] : estimate.expiry_date,
+                salesCategoryId: data.sales_category_id || estimate.sales_category_id,
+                notes: data.notes || estimate.notes || '',
+                items: items
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    router.reload({ only: ['estimates'] });
+                },
+                onError: (errors) => {
+                    if (errors.status) {
+                        alert(errors.status);
+                    } else {
+                        alert('Failed to update status');
+                    }
                 }
-            }
-        });
+            });
+        } catch (error) {
+            alert('Error updating status: ' + error.message);
+        }
     };
 
     const handleUpdate = (e) => { e.preventDefault(); editForm.put(`/admin/estimates/${selectedEstimate.id}`, { onSuccess: () => { setShowEditModal(false); setSelectedEstimate(null); } }); };
@@ -91,12 +113,12 @@ export default function Index({ estimates, customers, items, salesCategories, cu
 
     const statusColors = {
         DRAFT: 'bg-gray-100 text-gray-700',
-        PENDING_REVIEW: 'bg-yellow-100 text-yellow-700',
-        UNDER_REVIEW: 'bg-blue-100 text-blue-700',
-        APPROVED: 'bg-green-100 text-green-700',
-        REJECTED: 'bg-red-100 text-red-700',
-        ON_HOLD: 'bg-orange-100 text-orange-700',
-        COMPLETED: 'bg-purple-100 text-purple-700',
+        PENDING_REVIEW: 'bg-gray-100 text-gray-700',
+        UNDER_REVIEW: 'bg-gray-100 text-gray-700',
+        APPROVED: 'bg-[#2ca48b] bg-opacity-10 text-[#2ca48b]',
+        REJECTED: 'bg-gray-100 text-gray-700',
+        ON_HOLD: 'bg-gray-100 text-gray-700',
+        COMPLETED: 'bg-[#2ca48b] bg-opacity-10 text-[#2ca48b]',
         CANCELLED: 'bg-gray-100 text-gray-500'
     };
 
@@ -124,24 +146,50 @@ export default function Index({ estimates, customers, items, salesCategories, cu
             key: 'status', 
             label: 'Status', 
             render: (val, row) => {
+                // Terminal statuses that cannot be changed
+                const terminalStatuses = ['COMPLETED', 'CANCELLED'];
+                const isTerminal = terminalStatuses.includes(val);
+                
+                if (isTerminal) {
+                    return (
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[val] || 'bg-gray-100 text-gray-700'}`}>
+                            {val.replace(/_/g, ' ')}
+                        </span>
+                    );
+                }
+                
                 const validStatuses = getValidNextStatuses(val);
                 const allStatuses = ['DRAFT', 'PENDING_REVIEW', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ON_HOLD', 'COMPLETED', 'CANCELLED'];
+                // Only show current status and valid next statuses
+                const availableStatuses = allStatuses.filter(status => status === val || validStatuses.includes(status));
+                
                 return (
-                    <select 
-                        value={val} 
-                        onChange={(e) => handleStatusChange(row, e.target.value)}
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-[#2ca48b] focus:outline-none ${statusColors[val] || 'bg-gray-100 text-gray-700'}`}
-                    >
-                        {allStatuses.map(status => {
-                            const isCurrent = status === val;
-                            const isValid = validStatuses.includes(status) || isCurrent;
-                            return (
-                                <option key={status} value={status} disabled={!isValid}>
-                                    {status.replace(/_/g, ' ')} {isCurrent ? '(Current)' : ''}
+                    <div className="relative group">
+                        <select 
+                            value={val} 
+                            onChange={(e) => handleStatusChange(row, e.target.value)}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 bg-white text-gray-700 cursor-pointer focus:ring-2 focus:ring-[#2ca48b] focus:border-[#2ca48b] focus:outline-none appearance-none pr-8 transition-all duration-200 group-hover:bg-[#2ca48b] group-hover:text-white group-hover:border-[#2ca48b]"
+                            style={{ 
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                                backgroundPosition: 'right 0.5rem center',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundSize: '1.5em 1.5em',
+                                paddingRight: '2rem'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
+                            }}
+                        >
+                            {availableStatuses.map(status => (
+                                <option key={status} value={status} className="bg-white text-gray-700">
+                                    {status.replace(/_/g, ' ')}
                                 </option>
-                            );
-                        })}
-                    </select>
+                            ))}
+                        </select>
+                    </div>
                 );
             }
         },
