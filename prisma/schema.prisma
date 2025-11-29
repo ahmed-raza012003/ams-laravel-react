@@ -26,6 +26,7 @@ model Users {
   invoices         Invoices[]
   estimates        Estimates[]
   expenses         Expenses[]
+  tax_types        TaxType[]
   created_at       DateTime   @default(now())
   updated_at       DateTime   @updatedAt
   email_verified_at DateTime?
@@ -52,45 +53,61 @@ model Customers {
 }
 
 model Items {
-  id             Int            @id @default(autoincrement())
-  user_id        Int
-  user           Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name           String
-  description    String?
-  unit_price     Decimal        @db.Decimal(10, 2)
-  unit           String?        @default("unit")
-  tax_rate       Decimal?       @db.Decimal(5, 2) @default(0)
-  invoice_items  InvoiceItems[]
-  estimate_items EstimateItems[]
-  created_at     DateTime       @default(now())
-  updated_at     DateTime       @updatedAt
+  id                Int            @id @default(autoincrement())
+  user_id           Int
+  user              Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name              String
+  item_code         String?
+  description       String?
+  stock_quantity    Decimal        @db.Decimal(10, 2) @default(0)
+  unit              String?        @default("unit")
+  purchase_date     DateTime?
+  purchase_price    Decimal?       @db.Decimal(10, 2)
+  unit_price        Decimal        @db.Decimal(10, 2)
+  sales_price       Decimal?       @db.Decimal(10, 2)
+  manufacturer      String?
+  warranty_info     String?
+  notes             String?
+  item_category_id  Int?
+  item_category     ItemCategory?  @relation(fields: [item_category_id], references: [id], onDelete: SetNull)
+  tax_types         ItemTaxType[]
+  invoice_items     InvoiceItems[]
+  estimate_items    EstimateItems[]
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
 }
 
 model Invoices {
-  id             Int            @id @default(autoincrement())
-  user_id        Int
-  user           Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  customer_id    Int
-  customer       Customers      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
-  invoice_number String         @unique
-  issue_date     DateTime       @default(now())
-  due_date       DateTime
-  status         InvoiceStatus  @default(DRAFT)
-  subtotal       Decimal        @db.Decimal(10, 2) @default(0)
-  tax_amount     Decimal        @db.Decimal(10, 2) @default(0)
-  total          Decimal        @db.Decimal(10, 2) @default(0)
-  notes          String?
-  items          InvoiceItems[]
-  created_at     DateTime       @default(now())
-  updated_at     DateTime       @updatedAt
+  id               Int            @id @default(autoincrement())
+  user_id          Int
+  user             Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  customer_id      Int
+  customer         Customers      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  invoice_number   String         @unique
+  issue_date       DateTime       @default(now())
+  due_date         DateTime
+  status           InvoiceStatus  @default(DRAFT)
+  sales_category_id Int?
+  sales_category   SalesCategory? @relation(fields: [sales_category_id], references: [id], onDelete: SetNull)
+  subtotal         Decimal        @db.Decimal(10, 2) @default(0)
+  tax_amount       Decimal        @db.Decimal(10, 2) @default(0)
+  total            Decimal        @db.Decimal(10, 2) @default(0)
+  notes            String?
+  items            InvoiceItems[]
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
 }
 
 enum InvoiceStatus {
   DRAFT
-  SENT
+  PENDING
+  OPEN
+  PARTIALLY_PAID
   PAID
   OVERDUE
-  CANCELLED
+  UNPAID
+  VOID
+  REFUNDED
 }
 
 model InvoiceItems {
@@ -109,30 +126,35 @@ model InvoiceItems {
 }
 
 model Estimates {
-  id              Int            @id @default(autoincrement())
-  user_id         Int
-  user            Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  customer_id     Int
-  customer        Customers      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
-  estimate_number String         @unique
-  issue_date      DateTime       @default(now())
-  expiry_date     DateTime
-  status          EstimateStatus @default(DRAFT)
-  subtotal        Decimal        @db.Decimal(10, 2) @default(0)
-  tax_amount      Decimal        @db.Decimal(10, 2) @default(0)
-  total           Decimal        @db.Decimal(10, 2) @default(0)
-  notes           String?
-  items           EstimateItems[]
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
+  id               Int            @id @default(autoincrement())
+  user_id          Int
+  user             Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  customer_id      Int
+  customer         Customers      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  estimate_number  String         @unique
+  issue_date       DateTime       @default(now())
+  expiry_date      DateTime
+  status           EstimateStatus @default(DRAFT)
+  sales_category_id Int?
+  sales_category   SalesCategory? @relation(fields: [sales_category_id], references: [id], onDelete: SetNull)
+  subtotal         Decimal        @db.Decimal(10, 2) @default(0)
+  tax_amount       Decimal        @db.Decimal(10, 2) @default(0)
+  total            Decimal        @db.Decimal(10, 2) @default(0)
+  notes            String?
+  items            EstimateItems[]
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
 }
 
 enum EstimateStatus {
   DRAFT
-  SENT
-  ACCEPTED
+  PENDING_REVIEW
+  UNDER_REVIEW
+  APPROVED
   REJECTED
-  EXPIRED
+  ON_HOLD
+  COMPLETED
+  CANCELLED
 }
 
 model EstimateItems {
@@ -151,33 +173,70 @@ model EstimateItems {
 }
 
 model Expenses {
-  id          Int             @id @default(autoincrement())
-  user_id     Int
-  user        Users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  customer_id Int?
-  customer    Customers?      @relation(fields: [customer_id], references: [id], onDelete: SetNull)
-  category    ExpenseCategory
-  description String
-  amount      Decimal         @db.Decimal(10, 2)
-  tax_amount  Decimal         @db.Decimal(10, 2) @default(0)
-  date        DateTime        @default(now())
-  receipt     String?
-  notes       String?
-  created_at DateTime         @default(now())
-  updated_at DateTime         @updatedAt
+  id                 Int              @id @default(autoincrement())
+  user_id            Int
+  user               Users             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  customer_id        Int?
+  customer           Customers?        @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  expense_category_id Int?
+  expense_category   ExpenseCategory?  @relation(fields: [expense_category_id], references: [id], onDelete: SetNull)
+  description        String
+  amount             Decimal           @db.Decimal(10, 2)
+  tax_amount         Decimal           @db.Decimal(10, 2) @default(0)
+  date               DateTime          @default(now())
+  receipt            String?
+  notes              String?
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @updatedAt
 }
 
-enum ExpenseCategory {
-  OFFICE_SUPPLIES
-  TRAVEL
-  UTILITIES
-  RENT
-  MARKETING
-  SOFTWARE
-  EQUIPMENT
-  PAYROLL
-  PROFESSIONAL_SERVICES
-  INSURANCE
-  TAXES
-  OTHER
+model ItemCategory {
+  id         Int      @id @default(autoincrement())
+  title      String
+  description String?
+  items      Items[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model ExpenseCategory {
+  id         Int        @id @default(autoincrement())
+  title      String
+  description String?
+  expenses   Expenses[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+}
+
+model SalesCategory {
+  id         Int        @id @default(autoincrement())
+  title      String
+  description String?
+  invoices   Invoices[]
+  estimates  Estimates[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+}
+
+model TaxType {
+  id         Int          @id @default(autoincrement())
+  user_id    Int
+  user       Users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title      String
+  rate       Decimal      @db.Decimal(5, 2)
+  items      ItemTaxType[]
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+}
+
+model ItemTaxType {
+  id         Int      @id @default(autoincrement())
+  item_id    Int
+  item       Items    @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  tax_type_id Int
+  tax_type   TaxType @relation(fields: [tax_type_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([item_id, tax_type_id])
 }

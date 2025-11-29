@@ -8,12 +8,20 @@ use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Admin\EstimateController as AdminEstimateController;
 use App\Http\Controllers\Admin\ExpenseController as AdminExpenseController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ItemCategoryController as AdminItemCategoryController;
+use App\Http\Controllers\Admin\ExpenseCategoryController as AdminExpenseCategoryController;
+use App\Http\Controllers\Admin\SalesCategoryController as AdminSalesCategoryController;
+use App\Http\Controllers\Admin\TaxTypeController as AdminTaxTypeController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerController as CustomerCustomerController;
 use App\Http\Controllers\Customer\ItemController as CustomerItemController;
 use App\Http\Controllers\Customer\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\Customer\EstimateController as CustomerEstimateController;
 use App\Http\Controllers\Customer\ExpenseController as CustomerExpenseController;
+use App\Http\Controllers\Customer\ItemCategoryController as CustomerItemCategoryController;
+use App\Http\Controllers\Customer\ExpenseCategoryController as CustomerExpenseCategoryController;
+use App\Http\Controllers\Customer\SalesCategoryController as CustomerSalesCategoryController;
+use App\Http\Controllers\Customer\TaxTypeController as CustomerTaxTypeController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -62,9 +70,34 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('/items', [AdminItemController::class, 'store'])->name('items.store');
     Route::get('/items/{id}', [AdminItemController::class, 'show'])->name('items.show');
     Route::put('/items/{id}', [AdminItemController::class, 'update'])->name('items.update');
+    Route::put('/items/{id}/stock', [AdminItemController::class, 'updateStock'])->name('items.stock');
     Route::delete('/items/{id}', [AdminItemController::class, 'destroy'])->name('items.destroy');
     Route::get('/items/export/pdf', [AdminItemController::class, 'exportAllPdf'])->name('items.export.all.pdf');
     Route::get('/items/export/excel', [AdminItemController::class, 'exportAllExcel'])->name('items.export.all.excel');
+    
+    Route::get('/item-categories', [AdminItemCategoryController::class, 'index'])->name('item-categories.index');
+    Route::post('/item-categories', [AdminItemCategoryController::class, 'store'])->name('item-categories.store');
+    Route::get('/item-categories/{id}', [AdminItemCategoryController::class, 'show'])->name('item-categories.show');
+    Route::put('/item-categories/{id}', [AdminItemCategoryController::class, 'update'])->name('item-categories.update');
+    Route::delete('/item-categories/{id}', [AdminItemCategoryController::class, 'destroy'])->name('item-categories.destroy');
+    
+    Route::get('/expense-categories', [AdminExpenseCategoryController::class, 'index'])->name('expense-categories.index');
+    Route::post('/expense-categories', [AdminExpenseCategoryController::class, 'store'])->name('expense-categories.store');
+    Route::get('/expense-categories/{id}', [AdminExpenseCategoryController::class, 'show'])->name('expense-categories.show');
+    Route::put('/expense-categories/{id}', [AdminExpenseCategoryController::class, 'update'])->name('expense-categories.update');
+    Route::delete('/expense-categories/{id}', [AdminExpenseCategoryController::class, 'destroy'])->name('expense-categories.destroy');
+    
+    Route::get('/sales-categories', [AdminSalesCategoryController::class, 'index'])->name('sales-categories.index');
+    Route::post('/sales-categories', [AdminSalesCategoryController::class, 'store'])->name('sales-categories.store');
+    Route::get('/sales-categories/{id}', [AdminSalesCategoryController::class, 'show'])->name('sales-categories.show');
+    Route::put('/sales-categories/{id}', [AdminSalesCategoryController::class, 'update'])->name('sales-categories.update');
+    Route::delete('/sales-categories/{id}', [AdminSalesCategoryController::class, 'destroy'])->name('sales-categories.destroy');
+    
+    Route::get('/tax-types', [AdminTaxTypeController::class, 'index'])->name('tax-types.index');
+    Route::post('/tax-types', [AdminTaxTypeController::class, 'store'])->name('tax-types.store');
+    Route::get('/tax-types/{id}', [AdminTaxTypeController::class, 'show'])->name('tax-types.show');
+    Route::put('/tax-types/{id}', [AdminTaxTypeController::class, 'update'])->name('tax-types.update');
+    Route::delete('/tax-types/{id}', [AdminTaxTypeController::class, 'destroy'])->name('tax-types.destroy');
     
     Route::get('/invoices', [AdminInvoiceController::class, 'index'])->name('invoices.index');
     Route::post('/invoices', [AdminInvoiceController::class, 'store'])->name('invoices.store');
@@ -117,9 +150,34 @@ Route::middleware(['auth', 'verified', 'role:customer'])->prefix('customer')->na
     Route::post('/items', [CustomerItemController::class, 'store'])->name('items.store');
     Route::get('/items/{id}', [CustomerItemController::class, 'show'])->name('items.show');
     Route::put('/items/{id}', [CustomerItemController::class, 'update'])->name('items.update');
+    Route::put('/items/{id}/stock', [CustomerItemController::class, 'updateStock'])->name('items.stock');
     Route::delete('/items/{id}', [CustomerItemController::class, 'destroy'])->name('items.destroy');
     Route::get('/items/export/pdf', [CustomerItemController::class, 'exportAllPdf'])->name('items.export.all.pdf');
     Route::get('/items/export/excel', [CustomerItemController::class, 'exportAllExcel'])->name('items.export.all.excel');
+    
+    Route::get('/item-categories', [CustomerItemCategoryController::class, 'index'])->name('item-categories.index');
+    Route::post('/item-categories', [CustomerItemCategoryController::class, 'store'])->name('item-categories.store');
+    Route::get('/item-categories/{id}', [CustomerItemCategoryController::class, 'show'])->name('item-categories.show');
+    Route::put('/item-categories/{id}', [CustomerItemCategoryController::class, 'update'])->name('item-categories.update');
+    Route::delete('/item-categories/{id}', [CustomerItemCategoryController::class, 'destroy'])->name('item-categories.destroy');
+    
+    Route::get('/expense-categories', [CustomerExpenseCategoryController::class, 'index'])->name('expense-categories.index');
+    Route::post('/expense-categories', [CustomerExpenseCategoryController::class, 'store'])->name('expense-categories.store');
+    Route::get('/expense-categories/{id}', [CustomerExpenseCategoryController::class, 'show'])->name('expense-categories.show');
+    Route::put('/expense-categories/{id}', [CustomerExpenseCategoryController::class, 'update'])->name('expense-categories.update');
+    Route::delete('/expense-categories/{id}', [CustomerExpenseCategoryController::class, 'destroy'])->name('expense-categories.destroy');
+    
+    Route::get('/sales-categories', [CustomerSalesCategoryController::class, 'index'])->name('sales-categories.index');
+    Route::post('/sales-categories', [CustomerSalesCategoryController::class, 'store'])->name('sales-categories.store');
+    Route::get('/sales-categories/{id}', [CustomerSalesCategoryController::class, 'show'])->name('sales-categories.show');
+    Route::put('/sales-categories/{id}', [CustomerSalesCategoryController::class, 'update'])->name('sales-categories.update');
+    Route::delete('/sales-categories/{id}', [CustomerSalesCategoryController::class, 'destroy'])->name('sales-categories.destroy');
+    
+    Route::get('/tax-types', [CustomerTaxTypeController::class, 'index'])->name('tax-types.index');
+    Route::post('/tax-types', [CustomerTaxTypeController::class, 'store'])->name('tax-types.store');
+    Route::get('/tax-types/{id}', [CustomerTaxTypeController::class, 'show'])->name('tax-types.show');
+    Route::put('/tax-types/{id}', [CustomerTaxTypeController::class, 'update'])->name('tax-types.update');
+    Route::delete('/tax-types/{id}', [CustomerTaxTypeController::class, 'destroy'])->name('tax-types.destroy');
     
     Route::get('/invoices', [CustomerInvoiceController::class, 'index'])->name('invoices.index');
     Route::post('/invoices', [CustomerInvoiceController::class, 'store'])->name('invoices.store');

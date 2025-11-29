@@ -6,7 +6,7 @@ import Modal from '@/Components/Modal';
 import ExportButton from '@/Components/ExportButton';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
-export default function Index({ expenses, customers, categories, currency }) {
+export default function Index({ expenses, customers, expenseCategories, currency }) {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
@@ -16,8 +16,8 @@ export default function Index({ expenses, customers, categories, currency }) {
     const formatCurrency = (amount) => `${currency}${Number(amount).toFixed(2)}`;
     const formatDate = (date) => new Date(date).toLocaleDateString('en-GB');
 
-    const createForm = useForm({ category: 'OTHER', description: '', amount: '', taxAmount: '0', date: new Date().toISOString().split('T')[0], customerId: '', notes: '' });
-    const editForm = useForm({ category: '', description: '', amount: '', taxAmount: '', date: '', customerId: '', notes: '' });
+    const createForm = useForm({ expenseCategoryId: '', description: '', amount: '', taxAmount: '0', date: new Date().toISOString().split('T')[0], customerId: '', notes: '' });
+    const editForm = useForm({ expenseCategoryId: '', description: '', amount: '', taxAmount: '', date: '', customerId: '', notes: '' });
 
     const handleCreate = (e) => {
         e.preventDefault();
@@ -27,12 +27,12 @@ export default function Index({ expenses, customers, categories, currency }) {
     const handleEdit = (expense) => {
         setSelectedExpense(expense);
         editForm.setData({
-            category: expense.category || 'OTHER',
+            expenseCategoryId: expense.category_id || '',
             description: expense.description || '',
             amount: expense.amount || '',
-            taxAmount: expense.taxAmount || '0',
+            taxAmount: expense.tax_amount || '0',
             date: expense.date ? expense.date.split('T')[0] : '',
-            customerId: expense.customerId || '',
+            customerId: expense.customer_id || '',
             notes: expense.notes || '',
         });
         setShowEditModal(true);
@@ -49,7 +49,7 @@ export default function Index({ expenses, customers, categories, currency }) {
 
     const columns = [
         { key: 'date', label: 'Date', render: (val) => formatDate(val) },
-        { key: 'category', label: 'Category', render: (val) => categories[val] || val },
+        { key: 'category_title', label: 'Category', render: (val) => val || '-' },
         { key: 'description', label: 'Description', render: (val) => val.length > 40 ? val.substring(0, 40) + '...' : val },
         { key: 'customer_name', label: 'Customer', render: (val) => val || '-' },
         { key: 'amount', label: 'Amount', render: (val) => formatCurrency(val) },
@@ -68,8 +68,9 @@ export default function Index({ expenses, customers, categories, currency }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                    <select value={form.data.category} onChange={e => form.setData('category', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b] focus:border-[#2ca48b]" required>
-                        {Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                    <select value={form.data.expenseCategoryId} onChange={e => form.setData('expenseCategoryId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b] focus:border-[#2ca48b]" required>
+                        <option value="">Select category</option>
+                        {expenseCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
                     </select>
                 </div>
                 <div>
@@ -137,10 +138,10 @@ export default function Index({ expenses, customers, categories, currency }) {
                 {selectedExpense && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div><span className="text-sm text-gray-500">Category</span><p className="font-medium">{categories[selectedExpense.category]}</p></div>
+                            <div><span className="text-sm text-gray-500">Category</span><p className="font-medium">{selectedExpense.category_title || '-'}</p></div>
                             <div><span className="text-sm text-gray-500">Date</span><p className="font-medium">{formatDate(selectedExpense.date)}</p></div>
                             <div><span className="text-sm text-gray-500">Amount</span><p className="font-medium">{formatCurrency(selectedExpense.amount)}</p></div>
-                            <div><span className="text-sm text-gray-500">Tax Amount</span><p className="font-medium">{formatCurrency(selectedExpense.taxAmount)}</p></div>
+                            <div><span className="text-sm text-gray-500">Tax Amount</span><p className="font-medium">{formatCurrency(selectedExpense.tax_amount)}</p></div>
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedExpense.customer_name || '-'}</p></div>
                         </div>
                         <div><span className="text-sm text-gray-500">Description</span><p className="font-medium">{selectedExpense.description}</p></div>

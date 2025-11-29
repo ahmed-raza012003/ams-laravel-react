@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\StatusWorkflowService;
 use App\Services\InvoiceExportService;
 use App\Services\ExportService;
 use Illuminate\Http\Request;
@@ -17,11 +18,13 @@ class InvoiceController extends Controller
         $invoices = PrismaService::getInvoices($userId);
         $customers = PrismaService::getCustomers($userId);
         $items = PrismaService::getItems($userId);
+        $salesCategories = PrismaService::getSalesCategories();
 
         return Inertia::render('Customer/Invoices/Index', [
             'invoices' => $invoices,
             'customers' => $customers,
             'items' => $items,
+            'salesCategories' => $salesCategories,
             'currency' => config('app.currency_symbol', '£'),
         ]);
     }
@@ -31,6 +34,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'customerId' => 'required|integer',
             'dueDate' => 'required|date',
+            'salesCategoryId' => 'nullable|integer|exists:SalesCategory,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
@@ -62,6 +66,7 @@ class InvoiceController extends Controller
             'issueDate' => now(),
             'dueDate' => $validated['dueDate'],
             'status' => 'DRAFT',
+            'salesCategoryId' => $validated['salesCategoryId'] ?? null,
             'subtotal' => $subtotal,
             'taxAmount' => $taxAmount,
             'total' => $subtotal + $taxAmount,
@@ -107,7 +112,8 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'customerId' => 'required|integer',
             'dueDate' => 'required|date',
-            'status' => 'required|in:DRAFT,SENT,PAID,OVERDUE,CANCELLED',
+            'status' => 'required|in:DRAFT,PENDING,OPEN,PARTIALLY_PAID,PAID,OVERDUE,UNPAID,VOID,REFUNDED',
+            'salesCategoryId' => 'nullable|integer|exists:SalesCategory,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
@@ -116,6 +122,13 @@ class InvoiceController extends Controller
             'items.*.taxRate' => 'nullable|numeric|min:0|max:100',
             'items.*.itemId' => 'nullable|integer',
         ]);
+
+        // Validate status transition
+        if ($invoice->status !== $validated['status']) {
+            if (!StatusWorkflowService::isValidInvoiceTransition($invoice->status, $validated['status'])) {
+                return redirect()->back()->with('error', 'Invalid status transition from ' . $invoice->status . ' to ' . $validated['status']);
+            }
+        }
 
         $subtotal = 0;
         $taxAmount = 0;
@@ -131,6 +144,7 @@ class InvoiceController extends Controller
             'customerId' => $validated['customerId'],
             'dueDate' => $validated['dueDate'],
             'status' => $validated['status'],
+            'salesCategoryId' => $validated['salesCategoryId'] ?? null,
             'subtotal' => $subtotal,
             'taxAmount' => $taxAmount,
             'total' => $subtotal + $taxAmount,

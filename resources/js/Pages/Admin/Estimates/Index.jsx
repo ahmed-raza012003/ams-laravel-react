@@ -7,7 +7,7 @@ import PrintButton from '@/Components/PrintButton';
 import ExportButton from '@/Components/ExportButton';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
-export default function Index({ estimates, customers, items, currency }) {
+export default function Index({ estimates, customers, items, salesCategories, currency }) {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
@@ -26,8 +26,8 @@ export default function Index({ estimates, customers, items, currency }) {
     };
 
     const emptyItem = { description: '', quantity: 1, unitPrice: '', taxRate: 0, itemId: '' };
-    const createForm = useForm({ customerId: '', expiryDate: '', notes: '', items: [{ ...emptyItem }] });
-    const editForm = useForm({ customerId: '', expiryDate: '', status: '', notes: '', items: [] });
+    const createForm = useForm({ customerId: '', expiryDate: '', salesCategoryId: '', notes: '', items: [{ ...emptyItem }] });
+    const editForm = useForm({ customerId: '', expiryDate: '', salesCategoryId: '', notes: '', items: [] });
 
     const addItem = (form) => form.setData('items', [...form.data.items, { ...emptyItem }]);
     const removeItem = (form, index) => form.setData('items', form.data.items.filter((_, i) => i !== index));
@@ -47,8 +47,40 @@ export default function Index({ estimates, customers, items, currency }) {
         const response = await fetch(`/admin/estimates/${estimate.id}`);
         const data = await response.json();
         setSelectedEstimate(data);
-        editForm.setData({ customerId: data.customer_id || '', expiryDate: data.expiry_date ? data.expiry_date.split('T')[0] : '', status: data.status || 'DRAFT', notes: data.notes || '', items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unit_price, taxRate: i.tax_rate || 0, itemId: i.item_id || '' })) || [{ ...emptyItem }] });
+        editForm.setData({
+            customerId: data.customer_id || '',
+            expiryDate: data.expiry_date ? data.expiry_date.split('T')[0] : '',
+            salesCategoryId: data.sales_category_id || '',
+            notes: data.notes || '',
+            items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unit_price, taxRate: i.tax_rate || 0, itemId: i.item_id || '' })) || [{ ...emptyItem }]
+        });
         setShowEditModal(true);
+    };
+
+    const handleStatusChange = async (estimate, newStatus) => {
+        if (newStatus === estimate.status) return;
+        
+        const validStatuses = getValidNextStatuses(estimate.status);
+        if (!validStatuses.includes(newStatus)) {
+            alert('Invalid status transition');
+            return;
+        }
+
+        router.put(`/admin/estimates/${estimate.id}`, {
+            status: newStatus,
+            customerId: estimate.customer_id,
+            expiryDate: estimate.expiry_date,
+            salesCategoryId: estimate.sales_category_id,
+            notes: estimate.notes || '',
+            items: []
+        }, {
+            preserveScroll: true,
+            onError: (errors) => {
+                if (errors.status) {
+                    alert(errors.status);
+                }
+            }
+        });
     };
 
     const handleUpdate = (e) => { e.preventDefault(); editForm.put(`/admin/estimates/${selectedEstimate.id}`, { onSuccess: () => { setShowEditModal(false); setSelectedEstimate(null); } }); };
@@ -57,7 +89,30 @@ export default function Index({ estimates, customers, items, currency }) {
     const handleDelete = (estimate) => { setSelectedEstimate(estimate); setShowDeleteModal(true); };
     const confirmDelete = () => { router.delete(`/admin/estimates/${selectedEstimate.id}`, { onSuccess: () => { setShowDeleteModal(false); setSelectedEstimate(null); } }); };
 
-    const statusColors = { DRAFT: 'bg-gray-100 text-gray-700', SENT: 'bg-blue-100 text-blue-700', ACCEPTED: 'bg-green-100 text-green-700', REJECTED: 'bg-red-100 text-red-700', EXPIRED: 'bg-yellow-100 text-yellow-700' };
+    const statusColors = {
+        DRAFT: 'bg-gray-100 text-gray-700',
+        PENDING_REVIEW: 'bg-yellow-100 text-yellow-700',
+        UNDER_REVIEW: 'bg-blue-100 text-blue-700',
+        APPROVED: 'bg-green-100 text-green-700',
+        REJECTED: 'bg-red-100 text-red-700',
+        ON_HOLD: 'bg-orange-100 text-orange-700',
+        COMPLETED: 'bg-purple-100 text-purple-700',
+        CANCELLED: 'bg-gray-100 text-gray-500'
+    };
+
+    const getValidNextStatuses = (currentStatus) => {
+        const workflow = {
+            'DRAFT': ['PENDING_REVIEW', 'ON_HOLD', 'CANCELLED'],
+            'PENDING_REVIEW': ['UNDER_REVIEW', 'ON_HOLD', 'CANCELLED'],
+            'UNDER_REVIEW': ['APPROVED', 'REJECTED', 'ON_HOLD', 'CANCELLED'],
+            'APPROVED': ['COMPLETED', 'ON_HOLD', 'CANCELLED'],
+            'REJECTED': ['DRAFT', 'ON_HOLD', 'CANCELLED'],
+            'ON_HOLD': ['DRAFT', 'PENDING_REVIEW', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'CANCELLED'],
+            'COMPLETED': [],
+            'CANCELLED': [],
+        };
+        return workflow[currentStatus] || [];
+    };
 
     const columns = [
         { key: 'estimate_number', label: 'Estimate #' },
@@ -65,7 +120,31 @@ export default function Index({ estimates, customers, items, currency }) {
         { key: 'issue_date', label: 'Issue Date', render: (val) => formatDate(val) },
         { key: 'expiry_date', label: 'Expiry Date', render: (val) => formatDate(val) },
         { key: 'total', label: 'Total', render: (val) => formatCurrency(val) },
-        { key: 'status', label: 'Status', render: (val) => <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[val]}`}>{val}</span> },
+        { 
+            key: 'status', 
+            label: 'Status', 
+            render: (val, row) => {
+                const validStatuses = getValidNextStatuses(val);
+                const allStatuses = ['DRAFT', 'PENDING_REVIEW', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ON_HOLD', 'COMPLETED', 'CANCELLED'];
+                return (
+                    <select 
+                        value={val} 
+                        onChange={(e) => handleStatusChange(row, e.target.value)}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-[#2ca48b] focus:outline-none ${statusColors[val] || 'bg-gray-100 text-gray-700'}`}
+                    >
+                        {allStatuses.map(status => {
+                            const isCurrent = status === val;
+                            const isValid = validStatuses.includes(status) || isCurrent;
+                            return (
+                                <option key={status} value={status} disabled={!isValid}>
+                                    {status.replace(/_/g, ' ')} {isCurrent ? '(Current)' : ''}
+                                </option>
+                            );
+                        })}
+                    </select>
+                );
+            }
+        },
     ];
 
     const renderActions = (estimate) => (
@@ -117,6 +196,7 @@ export default function Index({ estimates, customers, items, currency }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label><select value={createForm.data.customerId} onChange={e => createForm.setData('customerId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required><option value="">Select customer</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label><input type="date" value={createForm.data.expiryDate} onChange={e => createForm.setData('expiryDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Sales Category</label><select value={createForm.data.salesCategoryId} onChange={e => createForm.setData('salesCategoryId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]"><option value="">Select category</option>{salesCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}</select></div>
                     </div>
                     <ItemsForm form={createForm} />
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Notes</label><textarea value={createForm.data.notes} onChange={e => createForm.setData('notes', e.target.value)} rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" /></div>
@@ -126,10 +206,10 @@ export default function Index({ estimates, customers, items, currency }) {
 
             <Modal show={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Estimate" maxWidth="3xl">
                 <form onSubmit={handleUpdate} className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label><select value={editForm.data.customerId} onChange={e => editForm.setData('customerId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required><option value="">Select customer</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label><input type="date" value={editForm.data.expiryDate} onChange={e => editForm.setData('expiryDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Status *</label><select value={editForm.data.status} onChange={e => editForm.setData('status', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required><option value="DRAFT">Draft</option><option value="SENT">Sent</option><option value="ACCEPTED">Accepted</option><option value="REJECTED">Rejected</option><option value="EXPIRED">Expired</option></select></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Sales Category</label><select value={editForm.data.salesCategoryId} onChange={e => editForm.setData('salesCategoryId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]"><option value="">Select category</option>{salesCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}</select></div>
                     </div>
                     <ItemsForm form={editForm} />
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Notes</label><textarea value={editForm.data.notes} onChange={e => editForm.setData('notes', e.target.value)} rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" /></div>
@@ -151,8 +231,9 @@ export default function Index({ estimates, customers, items, currency }) {
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedEstimate.customer_name}</p></div>
                             <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedEstimate.issue_date)}</p></div>
                             <div><span className="text-sm text-gray-500">Expiry Date</span><p className="font-medium">{formatDate(selectedEstimate.expiry_date)}</p></div>
+                            <div><span className="text-sm text-gray-500">Sales Category</span><p className="font-medium">{selectedEstimate.sales_category_title || '-'}</p></div>
                         </div>
-                        <div><span className="text-sm text-gray-500">Status</span><span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedEstimate.status]}`}>{selectedEstimate.status}</span></div>
+                        <div><span className="text-sm text-gray-500">Status</span><span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedEstimate.status] || 'bg-gray-100 text-gray-700'}`}>{selectedEstimate.status.replace(/_/g, ' ')}</span></div>
                         <div className="border rounded-lg overflow-hidden">
                             <table className="w-full text-sm"><thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Qty</th><th className="px-4 py-2 text-right">Price</th><th className="px-4 py-2 text-right">Tax</th><th className="px-4 py-2 text-right">Total</th></tr></thead><tbody>{selectedEstimate.items?.map((item, i) => <tr key={i} className="border-t"><td className="px-4 py-2">{item.description}</td><td className="px-4 py-2 text-right">{item.quantity}</td><td className="px-4 py-2 text-right">{formatCurrency(item.unit_price)}</td><td className="px-4 py-2 text-right">{item.tax_rate != null ? `${item.tax_rate}%` : '0%'}</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td></tr>)}</tbody></table>
                         </div>

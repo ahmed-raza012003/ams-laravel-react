@@ -7,7 +7,7 @@ import PrintButton from '@/Components/PrintButton';
 import ExportButton from '@/Components/ExportButton';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
-export default function Index({ invoices, customers, items, currency }) {
+export default function Index({ invoices, customers, items, salesCategories, currency }) {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
@@ -26,8 +26,8 @@ export default function Index({ invoices, customers, items, currency }) {
     };
 
     const emptyItem = { description: '', quantity: 1, unitPrice: '', taxRate: 0, itemId: '' };
-    const createForm = useForm({ customerId: '', dueDate: '', notes: '', items: [{ ...emptyItem }] });
-    const editForm = useForm({ customerId: '', dueDate: '', status: '', notes: '', items: [] });
+    const createForm = useForm({ customerId: '', dueDate: '', salesCategoryId: '', notes: '', items: [{ ...emptyItem }] });
+    const editForm = useForm({ customerId: '', dueDate: '', status: '', salesCategoryId: '', notes: '', items: [] });
 
     const addItem = (form) => form.setData('items', [...form.data.items, { ...emptyItem }]);
     const removeItem = (form, index) => form.setData('items', form.data.items.filter((_, i) => i !== index));
@@ -58,6 +58,7 @@ export default function Index({ invoices, customers, items, currency }) {
             customerId: data.customer_id || '',
             dueDate: data.due_date ? data.due_date.split('T')[0] : '',
             status: data.status || 'DRAFT',
+            salesCategoryId: data.sales_category_id || '',
             notes: data.notes || '',
             items: data.items?.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unit_price, taxRate: i.tax_rate || 0, itemId: i.item_id || '' })) || [{ ...emptyItem }],
         });
@@ -79,7 +80,32 @@ export default function Index({ invoices, customers, items, currency }) {
     const handleDelete = (invoice) => { setSelectedInvoice(invoice); setShowDeleteModal(true); };
     const confirmDelete = () => { router.delete(`/admin/invoices/${selectedInvoice.id}`, { onSuccess: () => { setShowDeleteModal(false); setSelectedInvoice(null); } }); };
 
-    const statusColors = { DRAFT: 'bg-gray-100 text-gray-700', SENT: 'bg-blue-100 text-blue-700', PAID: 'bg-green-100 text-green-700', OVERDUE: 'bg-red-100 text-red-700', CANCELLED: 'bg-gray-100 text-gray-500' };
+    const statusColors = {
+        DRAFT: 'bg-gray-100 text-gray-700',
+        PENDING: 'bg-yellow-100 text-yellow-700',
+        OPEN: 'bg-blue-100 text-blue-700',
+        PARTIALLY_PAID: 'bg-indigo-100 text-indigo-700',
+        PAID: 'bg-green-100 text-green-700',
+        OVERDUE: 'bg-red-100 text-red-700',
+        UNPAID: 'bg-orange-100 text-orange-700',
+        VOID: 'bg-gray-100 text-gray-500',
+        REFUNDED: 'bg-pink-100 text-pink-700'
+    };
+
+    const getValidNextStatuses = (currentStatus) => {
+        const workflow = {
+            'DRAFT': ['PENDING', 'UNPAID', 'VOID'],
+            'PENDING': ['OPEN', 'OVERDUE', 'UNPAID', 'VOID'],
+            'OPEN': ['PARTIALLY_PAID', 'PAID', 'OVERDUE', 'UNPAID', 'VOID'],
+            'PARTIALLY_PAID': ['PAID', 'UNPAID', 'VOID'],
+            'PAID': ['REFUNDED', 'VOID'],
+            'OVERDUE': ['OPEN', 'PARTIALLY_PAID', 'PAID', 'UNPAID', 'VOID'],
+            'UNPAID': ['DRAFT', 'PENDING', 'OPEN', 'VOID'],
+            'VOID': [],
+            'REFUNDED': [],
+        };
+        return workflow[currentStatus] || [];
+    };
 
     const columns = [
         { key: 'invoice_number', label: 'Invoice #' },
@@ -170,6 +196,13 @@ export default function Index({ invoices, customers, items, currency }) {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
                             <input type="date" value={createForm.data.dueDate} onChange={e => createForm.setData('dueDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sales Category</label>
+                            <select value={createForm.data.salesCategoryId} onChange={e => createForm.setData('salesCategoryId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]">
+                                <option value="">Select category</option>
+                                {salesCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
+                            </select>
+                        </div>
                     </div>
                     <ItemsForm form={createForm} />
                     <div>
@@ -185,7 +218,7 @@ export default function Index({ invoices, customers, items, currency }) {
 
             <Modal show={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Invoice" maxWidth="3xl">
                 <form onSubmit={handleUpdate} className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
                             <select value={editForm.data.customerId} onChange={e => editForm.setData('customerId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required>
@@ -198,14 +231,33 @@ export default function Index({ invoices, customers, items, currency }) {
                             <input type="date" value={editForm.data.dueDate} onChange={e => editForm.setData('dueDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required />
                         </div>
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sales Category</label>
+                            <select value={editForm.data.salesCategoryId} onChange={e => editForm.setData('salesCategoryId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]">
+                                <option value="">Select category</option>
+                                {salesCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
+                            </select>
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
                             <select value={editForm.data.status} onChange={e => editForm.setData('status', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2ca48b]" required>
-                                <option value="DRAFT">Draft</option>
-                                <option value="SENT">Sent</option>
-                                <option value="PAID">Paid</option>
-                                <option value="OVERDUE">Overdue</option>
-                                <option value="CANCELLED">Cancelled</option>
+                                {(() => {
+                                    const currentStatus = selectedInvoice?.status || 'DRAFT';
+                                    const validStatuses = getValidNextStatuses(currentStatus);
+                                    const allStatuses = ['DRAFT', 'PENDING', 'OPEN', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'UNPAID', 'VOID', 'REFUNDED'];
+                                    return allStatuses.map(status => {
+                                        const isCurrent = status === currentStatus;
+                                        const isValid = validStatuses.includes(status) || isCurrent;
+                                        return (
+                                            <option key={status} value={status} disabled={!isValid}>
+                                                {status.replace(/_/g, ' ')} {isCurrent ? '(Current)' : ''}
+                                            </option>
+                                        );
+                                    });
+                                })()}
                             </select>
+                            {editForm.data.status !== selectedInvoice?.status && !getValidNextStatuses(selectedInvoice?.status || 'DRAFT').includes(editForm.data.status) && (
+                                <p className="mt-1 text-sm text-red-600">Invalid status transition</p>
+                            )}
                         </div>
                     </div>
                     <ItemsForm form={editForm} />
@@ -234,8 +286,9 @@ export default function Index({ invoices, customers, items, currency }) {
                             <div><span className="text-sm text-gray-500">Customer</span><p className="font-medium">{selectedInvoice.customer_name}</p></div>
                             <div><span className="text-sm text-gray-500">Issue Date</span><p className="font-medium">{formatDate(selectedInvoice.issue_date)}</p></div>
                             <div><span className="text-sm text-gray-500">Due Date</span><p className="font-medium">{formatDate(selectedInvoice.due_date)}</p></div>
+                            <div><span className="text-sm text-gray-500">Sales Category</span><p className="font-medium">{selectedInvoice.sales_category_title || '-'}</p></div>
                         </div>
-                        <div><span className="text-sm text-gray-500">Status</span><span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedInvoice.status]}`}>{selectedInvoice.status}</span></div>
+                        <div><span className="text-sm text-gray-500">Status</span><span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedInvoice.status] || 'bg-gray-100 text-gray-700'}`}>{selectedInvoice.status.replace(/_/g, ' ')}</span></div>
                         <div className="border rounded-lg overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left">Description</th><th className="px-4 py-2 text-right">Qty</th><th className="px-4 py-2 text-right">Price</th><th className="px-4 py-2 text-right">Tax</th><th className="px-4 py-2 text-right">Total</th></tr></thead>

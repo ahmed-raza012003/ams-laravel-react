@@ -14,9 +14,13 @@ class ItemController extends Controller
     public function index()
     {
         $items = PrismaService::getItems();
+        $categories = PrismaService::getItemCategories();
+        $taxTypes = PrismaService::getTaxTypes();
 
         return Inertia::render('Admin/Items/Index', [
             'items' => $items,
+            'categories' => $categories,
+            'taxTypes' => $taxTypes,
             'currency' => config('app.currency_symbol', '£'),
         ]);
     }
@@ -25,10 +29,20 @@ class ItemController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'itemCode' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'unitPrice' => 'required|numeric|min:0',
+            'stockQuantity' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:50',
-            'taxRate' => 'nullable|numeric|min:0|max:100',
+            'purchaseDate' => 'nullable|date',
+            'purchasePrice' => 'nullable|numeric|min:0',
+            'unitPrice' => 'required|numeric|min:0',
+            'salesPrice' => 'nullable|numeric|min:0',
+            'manufacturer' => 'nullable|string|max:255',
+            'warrantyInfo' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'itemCategoryId' => 'nullable|integer|exists:ItemCategory,id',
+            'taxTypes' => 'nullable|array',
+            'taxTypes.*' => 'integer|exists:TaxType,id',
         ]);
 
         $validated['userId'] = auth()->id();
@@ -53,15 +67,36 @@ class ItemController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'itemCode' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'unitPrice' => 'required|numeric|min:0',
+            'stockQuantity' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:50',
-            'taxRate' => 'nullable|numeric|min:0|max:100',
+            'purchaseDate' => 'nullable|date',
+            'purchasePrice' => 'nullable|numeric|min:0',
+            'unitPrice' => 'required|numeric|min:0',
+            'salesPrice' => 'nullable|numeric|min:0',
+            'manufacturer' => 'nullable|string|max:255',
+            'warrantyInfo' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'itemCategoryId' => 'nullable|integer|exists:ItemCategory,id',
+            'taxTypes' => 'nullable|array',
+            'taxTypes.*' => 'integer|exists:TaxType,id',
         ]);
 
         PrismaService::updateItem($id, $validated);
 
         return redirect()->back()->with('success', 'Item updated successfully.');
+    }
+
+    public function updateStock(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'stockQuantity' => 'required|numeric|min:0',
+        ]);
+
+        PrismaService::updateItemStock($id, $validated['stockQuantity']);
+
+        return redirect()->back()->with('success', 'Stock updated successfully.');
     }
 
     public function destroy($id)

@@ -97,35 +97,110 @@ class PrismaService
 
     public static function getItems($userId = null)
     {
-        $query = DB::table('Items');
+        $query = DB::table('Items')
+            ->leftJoin('ItemCategory', 'Items.item_category_id', '=', 'ItemCategory.id')
+            ->select('Items.*', 'ItemCategory.title as category_title');
         if ($userId) {
-            $query->where('user_id', $userId);
+            $query->where('Items.user_id', $userId);
         }
-        return $query->orderBy('created_at', 'desc')->get();
+        $items = $query->orderBy('Items.created_at', 'desc')->get();
+        
+        // Load tax types for each item
+        foreach ($items as $item) {
+            $item->tax_types = DB::table('ItemTaxType')
+                ->join('TaxType', 'ItemTaxType.tax_type_id', '=', 'TaxType.id')
+                ->where('ItemTaxType.item_id', $item->id)
+                ->select('TaxType.*')
+                ->get();
+        }
+        
+        return $items;
     }
 
     public static function getItem($id)
     {
-        return DB::table('Items')->where('id', $id)->first();
+        $item = DB::table('Items')
+            ->leftJoin('ItemCategory', 'Items.item_category_id', '=', 'ItemCategory.id')
+            ->select('Items.*', 'ItemCategory.title as category_title', 'ItemCategory.id as category_id')
+            ->where('Items.id', $id)
+            ->first();
+        
+        if ($item) {
+            $item->tax_types = DB::table('ItemTaxType')
+                ->join('TaxType', 'ItemTaxType.tax_type_id', '=', 'TaxType.id')
+                ->where('ItemTaxType.item_id', $id)
+                ->select('TaxType.*')
+                ->get();
+        }
+        
+        return $item;
     }
 
     public static function createItem($data)
     {
+        $taxTypes = $data['taxTypes'] ?? [];
+        unset($data['taxTypes']);
+        
         $data = self::convertKeysToSnakeCase($data);
         $data['created_at'] = now();
         $data['updated_at'] = now();
-        return DB::table('Items')->insertGetId($data);
+        $itemId = DB::table('Items')->insertGetId($data);
+        
+        // Attach tax types
+        if (!empty($taxTypes)) {
+            foreach ($taxTypes as $taxTypeId) {
+                DB::table('ItemTaxType')->insert([
+                    'item_id' => $itemId,
+                    'tax_type_id' => $taxTypeId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+        
+        return $itemId;
     }
 
     public static function updateItem($id, $data)
     {
+        $taxTypes = $data['taxTypes'] ?? null;
+        unset($data['taxTypes']);
+        
         $data = self::convertKeysToSnakeCase($data);
         $data['updated_at'] = now();
-        return DB::table('Items')->where('id', $id)->update($data);
+        DB::table('Items')->where('id', $id)->update($data);
+        
+        // Update tax types if provided
+        if ($taxTypes !== null) {
+            DB::table('ItemTaxType')->where('item_id', $id)->delete();
+            if (!empty($taxTypes)) {
+                foreach ($taxTypes as $taxTypeId) {
+                    DB::table('ItemTaxType')->insert([
+                        'item_id' => $id,
+                        'tax_type_id' => $taxTypeId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        }
+        
+        return true;
+    }
+
+    public static function updateItemStock($id, $stockQuantity)
+    {
+        return DB::table('Items')
+            ->where('id', $id)
+            ->update([
+                'stock_quantity' => $stockQuantity,
+                'updated_at' => now(),
+            ]);
     }
 
     public static function deleteItem($id)
     {
+        DB::table('ItemTaxType')->where('item_id', $id)->delete();
         return DB::table('Items')->where('id', $id)->delete();
     }
 
@@ -133,7 +208,8 @@ class PrismaService
     {
         $query = DB::table('Invoices')
             ->join('Customers', 'Invoices.customer_id', '=', 'Customers.id')
-            ->select('Invoices.*', 'Customers.name as customer_name', 'Customers.email as customer_email');
+            ->leftJoin('SalesCategory', 'Invoices.sales_category_id', '=', 'SalesCategory.id')
+            ->select('Invoices.*', 'Customers.name as customer_name', 'Customers.email as customer_email', 'SalesCategory.title as sales_category_title');
         if ($userId) {
             $query->where('Invoices.user_id', $userId);
         }
@@ -144,7 +220,8 @@ class PrismaService
     {
         return DB::table('Invoices')
             ->join('Customers', 'Invoices.customer_id', '=', 'Customers.id')
-            ->select('Invoices.*', 'Customers.name as customer_name', 'Customers.email as customer_email')
+            ->leftJoin('SalesCategory', 'Invoices.sales_category_id', '=', 'SalesCategory.id')
+            ->select('Invoices.*', 'Customers.name as customer_name', 'Customers.email as customer_email', 'SalesCategory.title as sales_category_title', 'SalesCategory.id as sales_category_id')
             ->where('Invoices.id', $id)
             ->first();
     }
@@ -207,7 +284,8 @@ class PrismaService
     {
         $query = DB::table('Estimates')
             ->join('Customers', 'Estimates.customer_id', '=', 'Customers.id')
-            ->select('Estimates.*', 'Customers.name as customer_name', 'Customers.email as customer_email');
+            ->leftJoin('SalesCategory', 'Estimates.sales_category_id', '=', 'SalesCategory.id')
+            ->select('Estimates.*', 'Customers.name as customer_name', 'Customers.email as customer_email', 'SalesCategory.title as sales_category_title');
         if ($userId) {
             $query->where('Estimates.user_id', $userId);
         }
@@ -218,7 +296,8 @@ class PrismaService
     {
         return DB::table('Estimates')
             ->join('Customers', 'Estimates.customer_id', '=', 'Customers.id')
-            ->select('Estimates.*', 'Customers.name as customer_name', 'Customers.email as customer_email')
+            ->leftJoin('SalesCategory', 'Estimates.sales_category_id', '=', 'SalesCategory.id')
+            ->select('Estimates.*', 'Customers.name as customer_name', 'Customers.email as customer_email', 'SalesCategory.title as sales_category_title', 'SalesCategory.id as sales_category_id')
             ->where('Estimates.id', $id)
             ->first();
     }
@@ -281,7 +360,8 @@ class PrismaService
     {
         $query = DB::table('Expenses')
             ->leftJoin('Customers', 'Expenses.customer_id', '=', 'Customers.id')
-            ->select('Expenses.*', 'Customers.name as customer_name');
+            ->leftJoin('ExpenseCategory', 'Expenses.expense_category_id', '=', 'ExpenseCategory.id')
+            ->select('Expenses.*', 'Customers.name as customer_name', 'ExpenseCategory.title as category_title');
         if ($userId) {
             $query->where('Expenses.user_id', $userId);
         }
@@ -292,7 +372,8 @@ class PrismaService
     {
         return DB::table('Expenses')
             ->leftJoin('Customers', 'Expenses.customer_id', '=', 'Customers.id')
-            ->select('Expenses.*', 'Customers.name as customer_name')
+            ->leftJoin('ExpenseCategory', 'Expenses.expense_category_id', '=', 'ExpenseCategory.id')
+            ->select('Expenses.*', 'Customers.name as customer_name', 'ExpenseCategory.title as category_title', 'ExpenseCategory.id as category_id')
             ->where('Expenses.id', $id)
             ->first();
     }
@@ -358,7 +439,8 @@ class PrismaService
             ->select('Invoices.id', 'Invoices.invoice_number as reference', 'Invoices.total as amount', 'Invoices.status', 'Invoices.created_at', 'Customers.name as customer_name', DB::raw("'invoice' as type"));
         
         $expenseQuery = DB::table('Expenses')
-            ->select('Expenses.id', 'Expenses.description as reference', 'Expenses.amount', 'Expenses.category as status', 'Expenses.created_at', DB::raw("NULL as customer_name"), DB::raw("'expense' as type"));
+            ->leftJoin('ExpenseCategory', 'Expenses.expense_category_id', '=', 'ExpenseCategory.id')
+            ->select('Expenses.id', 'Expenses.description as reference', 'Expenses.amount', 'ExpenseCategory.title as status', 'Expenses.created_at', DB::raw("NULL as customer_name"), DB::raw("'expense' as type"));
 
         if ($userId) {
             $invoiceQuery->where('Invoices.user_id', $userId);
@@ -371,5 +453,150 @@ class PrismaService
             ->get();
 
         return $activities;
+    }
+
+    // ItemCategory methods
+    public static function getItemCategories($userId = null)
+    {
+        return DB::table('ItemCategory')->orderBy('created_at', 'desc')->get();
+    }
+
+    public static function getItemCategory($id)
+    {
+        return DB::table('ItemCategory')->where('id', $id)->first();
+    }
+
+    public static function createItemCategory($data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('ItemCategory')->insertGetId($data);
+    }
+
+    public static function updateItemCategory($id, $data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('ItemCategory')->where('id', $id)->update($data);
+    }
+
+    public static function deleteItemCategory($id)
+    {
+        return DB::table('ItemCategory')->where('id', $id)->delete();
+    }
+
+    // ExpenseCategory methods
+    public static function getExpenseCategories($userId = null)
+    {
+        return DB::table('ExpenseCategory')->orderBy('created_at', 'desc')->get();
+    }
+
+    public static function getExpenseCategory($id)
+    {
+        return DB::table('ExpenseCategory')->where('id', $id)->first();
+    }
+
+    public static function createExpenseCategory($data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('ExpenseCategory')->insertGetId($data);
+    }
+
+    public static function updateExpenseCategory($id, $data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('ExpenseCategory')->where('id', $id)->update($data);
+    }
+
+    public static function deleteExpenseCategory($id)
+    {
+        return DB::table('ExpenseCategory')->where('id', $id)->delete();
+    }
+
+    // SalesCategory methods
+    public static function getSalesCategories($userId = null)
+    {
+        return DB::table('SalesCategory')->orderBy('created_at', 'desc')->get();
+    }
+
+    public static function getSalesCategory($id)
+    {
+        return DB::table('SalesCategory')->where('id', $id)->first();
+    }
+
+    public static function createSalesCategory($data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('SalesCategory')->insertGetId($data);
+    }
+
+    public static function updateSalesCategory($id, $data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        return DB::table('SalesCategory')->where('id', $id)->update($data);
+    }
+
+    public static function deleteSalesCategory($id)
+    {
+        return DB::table('SalesCategory')->where('id', $id)->delete();
+    }
+
+    // TaxType methods
+    public static function getTaxTypes($userId = null)
+    {
+        $query = DB::table('TaxType');
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        return $query->orderBy('created_at', 'desc')->get();
+    }
+
+    public static function getTaxType($id, $userId = null)
+    {
+        $query = DB::table('TaxType')->where('id', $id);
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        return $query->first();
+    }
+
+    public static function createTaxType($data)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+        return DB::table('TaxType')->insertGetId($data);
+    }
+
+    public static function updateTaxType($id, $data, $userId = null)
+    {
+        $data = self::convertKeysToSnakeCase($data);
+        $data['updated_at'] = now();
+        $query = DB::table('TaxType')->where('id', $id);
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        return $query->update($data);
+    }
+
+    public static function deleteTaxType($id, $userId = null)
+    {
+        $query = DB::table('TaxType')->where('id', $id);
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        $taxType = $query->first();
+        if ($taxType) {
+            DB::table('ItemTaxType')->where('tax_type_id', $id)->delete();
+            return DB::table('TaxType')->where('id', $id)->delete();
+        }
+        return false;
     }
 }

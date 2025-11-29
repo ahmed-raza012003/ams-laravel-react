@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\PrismaService;
+use App\Services\StatusWorkflowService;
 use App\Services\EstimateExportService;
 use App\Services\ExportService;
 use Illuminate\Http\Request;
@@ -16,11 +17,13 @@ class EstimateController extends Controller
         $estimates = PrismaService::getEstimates();
         $customers = PrismaService::getCustomers();
         $items = PrismaService::getItems();
+        $salesCategories = PrismaService::getSalesCategories();
 
         return Inertia::render('Admin/Estimates/Index', [
             'estimates' => $estimates,
             'customers' => $customers,
             'items' => $items,
+            'salesCategories' => $salesCategories,
             'currency' => config('app.currency_symbol', '£'),
         ]);
     }
@@ -30,6 +33,7 @@ class EstimateController extends Controller
         $validated = $request->validate([
             'customerId' => 'required|integer',
             'expiryDate' => 'required|date',
+            'salesCategoryId' => 'nullable|integer|exists:SalesCategory,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
@@ -56,6 +60,7 @@ class EstimateController extends Controller
             'issueDate' => now(),
             'expiryDate' => $validated['expiryDate'],
             'status' => 'DRAFT',
+            'salesCategoryId' => $validated['salesCategoryId'] ?? null,
             'subtotal' => $subtotal,
             'taxAmount' => $taxAmount,
             'total' => $subtotal + $taxAmount,
@@ -93,10 +98,16 @@ class EstimateController extends Controller
 
     public function update(Request $request, $id)
     {
+        $estimate = PrismaService::getEstimate($id);
+        if (!$estimate) {
+            return redirect()->back()->with('error', 'Estimate not found.');
+        }
+
         $validated = $request->validate([
             'customerId' => 'required|integer',
             'expiryDate' => 'required|date',
-            'status' => 'required|in:DRAFT,SENT,ACCEPTED,REJECTED,EXPIRED',
+            'status' => 'required|in:DRAFT,PENDING_REVIEW,UNDER_REVIEW,APPROVED,REJECTED,ON_HOLD,COMPLETED,CANCELLED',
+            'salesCategoryId' => 'nullable|integer|exists:SalesCategory,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
@@ -105,6 +116,13 @@ class EstimateController extends Controller
             'items.*.taxRate' => 'nullable|numeric|min:0|max:100',
             'items.*.itemId' => 'nullable|integer',
         ]);
+
+        // Validate status transition
+        if ($estimate->status !== $validated['status']) {
+            if (!StatusWorkflowService::isValidEstimateTransition($estimate->status, $validated['status'])) {
+                return redirect()->back()->with('error', 'Invalid status transition from ' . $estimate->status . ' to ' . $validated['status']);
+            }
+        }
 
         $subtotal = 0;
         $taxAmount = 0;
@@ -120,6 +138,7 @@ class EstimateController extends Controller
             'customerId' => $validated['customerId'],
             'expiryDate' => $validated['expiryDate'],
             'status' => $validated['status'],
+            'salesCategoryId' => $validated['salesCategoryId'] ?? null,
             'subtotal' => $subtotal,
             'taxAmount' => $taxAmount,
             'total' => $subtotal + $taxAmount,

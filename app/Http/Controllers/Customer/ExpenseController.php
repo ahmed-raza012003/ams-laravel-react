@@ -16,26 +16,12 @@ class ExpenseController extends Controller
         $userId = auth()->id();
         $expenses = PrismaService::getExpenses($userId);
         $customers = PrismaService::getCustomers($userId);
-
-        $categories = [
-            'OFFICE_SUPPLIES' => 'Office Supplies',
-            'TRAVEL' => 'Travel',
-            'UTILITIES' => 'Utilities',
-            'RENT' => 'Rent',
-            'MARKETING' => 'Marketing',
-            'SOFTWARE' => 'Software',
-            'EQUIPMENT' => 'Equipment',
-            'PAYROLL' => 'Payroll',
-            'PROFESSIONAL_SERVICES' => 'Professional Services',
-            'INSURANCE' => 'Insurance',
-            'TAXES' => 'Taxes',
-            'OTHER' => 'Other',
-        ];
+        $expenseCategories = PrismaService::getExpenseCategories();
 
         return Inertia::render('Customer/Expenses/Index', [
             'expenses' => $expenses,
             'customers' => $customers,
-            'categories' => $categories,
+            'expenseCategories' => $expenseCategories,
             'currency' => config('app.currency_symbol', '£'),
         ]);
     }
@@ -43,7 +29,7 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'category' => 'required|in:OFFICE_SUPPLIES,TRAVEL,UTILITIES,RENT,MARKETING,SOFTWARE,EQUIPMENT,PAYROLL,PROFESSIONAL_SERVICES,INSURANCE,TAXES,OTHER',
+            'expenseCategoryId' => 'required|integer|exists:ExpenseCategory,id',
             'description' => 'required|string|max:500',
             'amount' => 'required|numeric|min:0',
             'taxAmount' => 'nullable|numeric|min:0',
@@ -86,7 +72,7 @@ class ExpenseController extends Controller
         }
 
         $validated = $request->validate([
-            'category' => 'required|in:OFFICE_SUPPLIES,TRAVEL,UTILITIES,RENT,MARKETING,SOFTWARE,EQUIPMENT,PAYROLL,PROFESSIONAL_SERVICES,INSURANCE,TAXES,OTHER',
+            'expenseCategoryId' => 'required|integer|exists:ExpenseCategory,id',
             'description' => 'required|string|max:500',
             'amount' => 'required|numeric|min:0',
             'taxAmount' => 'nullable|numeric|min:0',

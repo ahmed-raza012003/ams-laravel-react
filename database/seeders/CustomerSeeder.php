@@ -48,32 +48,57 @@ class CustomerSeeder extends Seeder
                 'country' => 'United Kingdom',
             ]);
 
+            // Create tax type for items
+            $taxTypeId = PrismaService::createTaxType([
+                'userId' => $userId,
+                'title' => 'VAT',
+                'rate' => 20.00,
+            ]);
+
+            // Create item category
+            $itemCategoryId = PrismaService::createItemCategory([
+                'title' => 'Services',
+                'description' => 'Service-based items',
+            ]);
+
             // Create sample items for the customer
             $item1Id = PrismaService::createItem([
                 'userId' => $userId,
                 'name' => 'Web Development Service',
                 'description' => 'Custom web development and design',
+                'itemCode' => 'WEB-DEV-001',
                 'unitPrice' => 150.00,
+                'salesPrice' => 150.00,
                 'unit' => 'hour',
-                'taxRate' => 20.00,
+                'stockQuantity' => 0,
+                'itemCategoryId' => $itemCategoryId,
+                'taxTypes' => [$taxTypeId],
             ]);
 
             $item2Id = PrismaService::createItem([
                 'userId' => $userId,
                 'name' => 'Consulting Service',
                 'description' => 'Business consulting and advisory',
+                'itemCode' => 'CONSULT-001',
                 'unitPrice' => 200.00,
+                'salesPrice' => 200.00,
                 'unit' => 'hour',
-                'taxRate' => 20.00,
+                'stockQuantity' => 0,
+                'itemCategoryId' => $itemCategoryId,
+                'taxTypes' => [$taxTypeId],
             ]);
 
             $item3Id = PrismaService::createItem([
                 'userId' => $userId,
                 'name' => 'Hosting Service',
                 'description' => 'Monthly web hosting and maintenance',
+                'itemCode' => 'HOST-001',
                 'unitPrice' => 50.00,
+                'salesPrice' => 50.00,
                 'unit' => 'month',
-                'taxRate' => 20.00,
+                'stockQuantity' => 0,
+                'itemCategoryId' => $itemCategoryId,
+                'taxTypes' => [$taxTypeId],
             ]);
 
             // Create sample invoices
@@ -107,7 +132,7 @@ class CustomerSeeder extends Seeder
                 'invoiceNumber' => PrismaService::generateInvoiceNumber(),
                 'issueDate' => Carbon::now()->subDays(15),
                 'dueDate' => Carbon::now()->addDays(15),
-                'status' => 'SENT',
+                'status' => 'OPEN',
                 'subtotal' => 1000.00,
                 'taxAmount' => 200.00,
                 'total' => 1200.00,
@@ -156,7 +181,7 @@ class CustomerSeeder extends Seeder
                 'estimateNumber' => PrismaService::generateEstimateNumber(),
                 'issueDate' => Carbon::now()->subDays(10),
                 'expiryDate' => Carbon::now()->addDays(20),
-                'status' => 'SENT',
+                'status' => 'PENDING_REVIEW',
                 'subtotal' => 3000.00,
                 'taxAmount' => 600.00,
                 'total' => 3600.00,
@@ -198,11 +223,37 @@ class CustomerSeeder extends Seeder
                 'total' => 960.00,
             ]);
 
+            // Create expense categories
+            $expenseCategorySoftware = PrismaService::createExpenseCategory([
+                'title' => 'Software',
+                'description' => 'Software subscriptions and licenses',
+            ]);
+
+            $expenseCategoryOffice = PrismaService::createExpenseCategory([
+                'title' => 'Office Supplies',
+                'description' => 'Office stationery and supplies',
+            ]);
+
+            $expenseCategoryTravel = PrismaService::createExpenseCategory([
+                'title' => 'Travel',
+                'description' => 'Travel and transportation expenses',
+            ]);
+
+            $expenseCategoryUtilities = PrismaService::createExpenseCategory([
+                'title' => 'Utilities',
+                'description' => 'Utilities and bills',
+            ]);
+
+            $expenseCategoryMarketing = PrismaService::createExpenseCategory([
+                'title' => 'Marketing',
+                'description' => 'Marketing and advertising expenses',
+            ]);
+
             // Create sample expenses
             PrismaService::createExpense([
                 'userId' => $userId,
                 'customerId' => $customerId,
-                'category' => 'SOFTWARE',
+                'expenseCategoryId' => $expenseCategorySoftware,
                 'description' => 'Adobe Creative Cloud Subscription',
                 'amount' => 49.99,
                 'taxAmount' => 9.99,
@@ -213,7 +264,7 @@ class CustomerSeeder extends Seeder
             PrismaService::createExpense([
                 'userId' => $userId,
                 'customerId' => $customerId,
-                'category' => 'OFFICE_SUPPLIES',
+                'expenseCategoryId' => $expenseCategoryOffice,
                 'description' => 'Office stationery and supplies',
                 'amount' => 125.50,
                 'taxAmount' => 25.10,
@@ -224,7 +275,7 @@ class CustomerSeeder extends Seeder
             PrismaService::createExpense([
                 'userId' => $userId,
                 'customerId' => $customerId,
-                'category' => 'TRAVEL',
+                'expenseCategoryId' => $expenseCategoryTravel,
                 'description' => 'Client meeting travel expenses',
                 'amount' => 85.00,
                 'taxAmount' => 17.00,
@@ -235,7 +286,7 @@ class CustomerSeeder extends Seeder
             PrismaService::createExpense([
                 'userId' => $userId,
                 'customerId' => null,
-                'category' => 'UTILITIES',
+                'expenseCategoryId' => $expenseCategoryUtilities,
                 'description' => 'Office internet and phone bill',
                 'amount' => 89.99,
                 'taxAmount' => 18.00,
@@ -246,7 +297,7 @@ class CustomerSeeder extends Seeder
             PrismaService::createExpense([
                 'userId' => $userId,
                 'customerId' => $customerId,
-                'category' => 'MARKETING',
+                'expenseCategoryId' => $expenseCategoryMarketing,
                 'description' => 'Google Ads campaign',
                 'amount' => 200.00,
                 'taxAmount' => 40.00,

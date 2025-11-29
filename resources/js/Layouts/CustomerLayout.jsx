@@ -11,6 +11,7 @@ import {
     XMarkIcon,
     ArrowRightOnRectangleIcon,
     UserCircleIcon,
+    ReceiptPercentIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
     { name: 'Invoices', href: '/customer/invoices', icon: DocumentTextIcon },
     { name: 'Estimates', href: '/customer/estimates', icon: ClipboardDocumentListIcon },
     { name: 'Expenses', href: '/customer/expenses', icon: CurrencyPoundIcon },
+    { name: 'Tax Types', href: '/customer/tax-types', icon: ReceiptPercentIcon },
 ];
 
 export default function CustomerLayout({ children, title }) {
