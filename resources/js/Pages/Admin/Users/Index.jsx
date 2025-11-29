@@ -17,9 +17,15 @@ export default function Index({ users, roles }) {
 
     const handleCreate = (e) => { e.preventDefault(); createForm.post('/admin/users', { onSuccess: () => { setShowCreateModal(false); createForm.reset(); } }); };
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-GB');
+    };
+
     const handleEdit = (user) => {
         setSelectedUser(user);
-        editForm.setData({ name: user.name || '', email: user.email || '', password: '', roleId: user.roleId || '' });
+        editForm.setData({ name: user.name || '', email: user.email || '', password: '', roleId: user.role_id || '' });
         setShowEditModal(true);
     };
 
@@ -32,7 +38,7 @@ export default function Index({ users, roles }) {
         { key: 'name', label: 'Name' },
         { key: 'email', label: 'Email' },
         { key: 'role_name', label: 'Role', render: (val) => <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${val === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{val}</span> },
-        { key: 'createdAt', label: 'Created', render: (val) => new Date(val).toLocaleDateString('en-GB') },
+        { key: 'created_at', label: 'Created', render: (val) => formatDate(val) },
     ];
 
     const renderActions = (user) => (
@@ -79,7 +85,7 @@ export default function Index({ users, roles }) {
                             <div><span className="text-sm text-gray-500">Name</span><p className="font-medium">{selectedUser.name}</p></div>
                             <div><span className="text-sm text-gray-500">Email</span><p className="font-medium">{selectedUser.email}</p></div>
                             <div><span className="text-sm text-gray-500">Role</span><p className="font-medium capitalize">{selectedUser.role_name}</p></div>
-                            <div><span className="text-sm text-gray-500">Created</span><p className="font-medium">{new Date(selectedUser.createdAt).toLocaleDateString('en-GB')}</p></div>
+                            <div><span className="text-sm text-gray-500">Created</span><p className="font-medium">{formatDate(selectedUser.created_at)}</p></div>
                         </div>
                     </div>
                 )}
